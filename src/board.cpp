@@ -1,10 +1,9 @@
 #include "../include/board.h"
 
 board::board() {
-    // white_pawns = white_king = white_queens = white_bishops = white_knights = white_rooks = 0ULL;
-    // black_pawns = black_king = black_queens = black_bishops = black_knights = black_rooks = 0ULL;
-    for(int i = 0; i<12; i++) pieces[i] = 0ULL;
-
+    for (int i = 0; i < 12; i++)
+        pieces[i] = 0ULL;
+    turn = COLOUR::WHITE;
     flags = 0;
     flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
     flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
@@ -12,15 +11,104 @@ board::board() {
     flags |= static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
 }
 
+void board::load_fen(const std::string &fen) {
+    std::stringstream ss(fen);
+    std::string board, side, castling, ep;
+    int halfmove, fullmove;
+
+    ss >> board >> side >> castling >> ep >> halfmove >> fullmove;
+
+    int rank = 7;
+    int file = 0;
+
+    for (char c : fen) {
+        if (c == ' ')
+            break;
+
+        if (c == '/') {
+            rank--;
+            file = 0;
+            continue;
+        }
+
+        if (isdigit(c)) {
+            file += c - '0';
+            continue;
+        }
+
+        int piece = -1;
+        switch (c) {
+        case 'P':
+            piece = 0;
+            break;
+        case 'R':
+            piece = 1;
+            break;
+        case 'N':
+            piece = 2;
+            break;
+        case 'B':
+            piece = 3;
+            break;
+        case 'K':
+            piece = 4;
+            break;
+        case 'Q':
+            piece = 5;
+            break;
+        case 'p':
+            piece = 6;
+            break;
+        case 'r':
+            piece = 7;
+            break;
+        case 'n':
+            piece = 8;
+            break;
+        case 'b':
+            piece = 9;
+            break;
+        case 'k':
+            piece = 10;
+            break;
+        case 'q':
+            piece = 11;
+            break;
+        default:
+            piece = -1;
+            break;
+        }
+        int sq = rank * 8 + file;
+        pieces[piece] |= (1ULL << sq);
+        file++;
+    }
+
+    turn = (side == "w") ? COLOUR::WHITE : COLOUR::BLACK;
+
+    if (castling.find('K') != std::string::npos)
+        flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
+    if (castling.find('Q') != std::string::npos)
+        flags |= static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
+    if (castling.find('k') != std::string::npos)
+        flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
+    if (castling.find('q') != std::string::npos)
+        flags |= static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
+
+    // enpass left unimplemented
+    // halmove and fullmove ma chudaye
+}
+
 u64 board::all_white_pieces() const {
     u64 all_wp = 0ULL;
-    for(int i = 0; i<6; i++) all_wp ^= pieces[i];
+    for (int i = 0; i < 6; i++)
+        all_wp ^= pieces[i];
     return all_wp;
 }
 
 u64 board::all_black_pieces() const {
     u64 all_bp = 0ULL;
-    for(int i = 6; i<12; i++) all_bp |= pieces[i];
+    for (int i = 6; i < 12; i++)
+        all_bp |= pieces[i];
     return all_bp;
 }
 
@@ -35,74 +123,14 @@ bool board::set_piece(u64 location, PIECE piece, COLOUR colour) {
     }
 
     if (piece == PIECE::EMPTY) {
-        // white_pawns &= ~location;
-        // white_king &= ~location;
-        // white_queens &= ~location;
-        // white_bishops &= ~location;
-        // white_knights &= ~location;
-        // white_rooks &= ~location;
-        // black_pawns &= ~location;
-        // black_king &= ~location;
-        // black_queens &= ~location;
-        // black_knights &= ~location;
-        // black_rooks &= ~location;
-        // black_bishops &= ~location;
-        for(int i = 0; i<12; i++){
+        for (int i = 0; i < 12; i++) {
             pieces[i] &= ~location;
         }
         return true;
-    }
-    else{
+    } else {
         int piece_idx = get_piece_idx(colour, piece);
         pieces[piece_idx] |= location;
     }
-    // if (colour == COLOUR::WHITE) {
-    //     switch (piece) {
-    //     case PIECE::PAWN:
-    //         white_pawns |= location;
-    //         break;
-    //     case PIECE::ROOK:
-    //         white_rooks |= location;
-    //         break;
-    //     case PIECE::KNIGHT:
-    //         white_knights |= location;
-    //         break;
-    //     case PIECE::BISHOP:
-    //         white_bishops |= location;
-    //         break;
-    //     case PIECE::KING:
-    //         white_king |= location;
-    //         break;
-    //     case PIECE::QUEEN:
-    //         white_queens |= location;
-    //         break;
-    //     default:
-    //         return false;
-    //     }
-    // } else if (colour == COLOUR::BLACK) {
-    //     switch (piece) {
-    //     case PIECE::PAWN:
-    //         black_pawns |= location;
-    //         break;
-    //     case PIECE::ROOK:
-    //         black_rooks |= location;
-    //         break;
-    //     case PIECE::KNIGHT:
-    //         black_knights |= location;
-    //         break;
-    //     case PIECE::BISHOP:
-    //         black_bishops |= location;
-    //         break;
-    //     case PIECE::KING:
-    //         black_king |= location;
-    //         break;
-    //     case PIECE::QUEEN:
-    //         black_queens |= location;
-    //         break;
-    //     default:
-    //         return false;
-    //     }
-    // }
     return true;
 }
 
@@ -115,41 +143,17 @@ std::pair<COLOUR, PIECE> board::get_piece(u64 location) const {
 
     COLOUR colour = COLOUR::NONE;
     PIECE piece = PIECE::EMPTY;
-    for(int i = 0; i<12; i++){
-        if(pieces[i] & location){
-            if(i < 6) colour = COLOUR::WHITE;
-            else colour = COLOUR::BLACK;
-            piece = static_cast<PIECE>(i%6 + 1);
+    for (int i = 0; i < 12; i++) {
+        if (pieces[i] & location) {
+            if (i < 6)
+                colour = COLOUR::WHITE;
+            else
+                colour = COLOUR::BLACK;
+            piece = static_cast<PIECE>(i % 6 + 1);
         }
     }
 
     return std::pair{colour, piece};
-    // if (white_bishops & location)
-    //     return {COLOUR::WHITE, PIECE::BISHOP};
-    // else if (white_rooks & location)
-    //     return {COLOUR::WHITE, PIECE::ROOK};
-    // else if (white_knights & location)
-    //     return {COLOUR::WHITE, PIECE::KNIGHT};
-    // else if (white_king & location)
-    //     return {COLOUR::WHITE, PIECE::KING};
-    // else if (white_pawns & location)
-    //     return {COLOUR::WHITE, PIECE::PAWN};
-    // else if (white_queens & location)
-    //     return {COLOUR::WHITE, PIECE::QUEEN};
-    // else if (black_bishops & location)
-    //     return {COLOUR::BLACK, PIECE::BISHOP};
-    // else if (black_rooks & location)
-    //     return {COLOUR::BLACK, PIECE::ROOK};
-    // else if (black_knights & location)
-    //     return {COLOUR::BLACK, PIECE::KNIGHT};
-    // else if (black_king & location)
-    //     return {COLOUR::BLACK, PIECE::KING};
-    // else if (black_pawns & location)
-    //     return {COLOUR::BLACK, PIECE::PAWN};
-    // else if (black_queens & location)
-    //     return {COLOUR::BLACK, PIECE::QUEEN};
-    // else
-    //     return {COLOUR::NONE, PIECE::EMPTY};
 }
 
 void board::apply_move(const move &move_to_make) {
@@ -173,7 +177,7 @@ void board::apply_move(const move &move_to_make) {
 void board::print_board() const {
     for (int r = 0; r < 8; r++) {
         cout << "| ";
-        for (int c = 0; c < 8; c++) {
+        for (int c = 7; c >= 0; c--) {
             u64 location = (1ULL << (8 * r)) << c;
             auto [colour, piece] = get_piece(location);
             if (colour == COLOUR::WHITE)

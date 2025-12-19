@@ -27,30 +27,8 @@ template <typename derived> class rules {
 class std_rules : public rules<std_rules> {
   public:
     void init_board(board &chess_board) {
-        for (int col = 0; col < 8; col++) {
-            chess_board.set_piece((1ULL << 8 << col), PIECE::PAWN, COLOUR::WHITE);
-            chess_board.set_piece((1ULL << (8 * 6) << col), PIECE::PAWN, COLOUR::BLACK);
-        }
-
-        chess_board.set_piece((1ULL), PIECE::ROOK, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << 7), PIECE::ROOK, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << (8 * 7)), PIECE::ROOK, COLOUR::BLACK);
-        chess_board.set_piece((1ULL << (8 * 7) << 7), PIECE::ROOK, COLOUR::BLACK);
-
-        chess_board.set_piece((1ULL << 1), PIECE::KNIGHT, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << 6), PIECE::KNIGHT, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << (8 * 7) << 1), PIECE::KNIGHT, COLOUR::BLACK);
-        chess_board.set_piece((1ULL << (8 * 7) << 6), PIECE::KNIGHT, COLOUR::BLACK);
-
-        chess_board.set_piece((1ULL << 2), PIECE::BISHOP, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << 5), PIECE::BISHOP, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << (8 * 7) << 2), PIECE::BISHOP, COLOUR::BLACK);
-        chess_board.set_piece((1ULL << (8 * 7) << 5), PIECE::BISHOP, COLOUR::BLACK);
-
-        chess_board.set_piece((1ULL << 3), PIECE::QUEEN, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << 4), PIECE::KING, COLOUR::WHITE);
-        chess_board.set_piece((1ULL << (8 * 7) << 3), PIECE::QUEEN, COLOUR::BLACK);
-        chess_board.set_piece((1ULL << (8 * 7) << 4), PIECE::KING, COLOUR::BLACK);
+        std::string start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        chess_board.load_fen(start_fen);
     }
 
     void update_flags(board &chess_board, const move &move_made) {

@@ -252,22 +252,6 @@ std::vector<move> move_generator::get_bishop_moves() {
     if (turn == COLOUR::NONE)
         return {};
     std::vector<move> candidates;
-
-    // if (turn == COLOUR::WHITE) {
-    //     u64 wbishops = current.pieces[get_piece_idx(COLOUR::WHIT)];
-    //     while (wbishops) {
-    //         u64 bishop_location = wbishops ^ (wbishops & (wbishops - 1));
-    //         filter_diagonal_moves(PIECE::BISHOP, bishop_location, candidates);
-    //         wbishops &= wbishops - 1;
-    //     }
-    // } else {
-    //     u64 bbishops = current.black_bishops;
-    //     while (bbishops) {
-    //         u64 bishop_location = bbishops ^ (bbishops & (bbishops - 1));
-    //         filter_diagonal_moves(PIECE::BISHOP, bishop_location, candidates);
-    //         bbishops &= bbishops - 1;
-    //     }
-    // }
     u64 bishops = current.pieces[get_piece_idx(turn, PIECE::BISHOP)];
     while (bishops) {
         u64 bishop_location = bishops ^ (bishops & (bishops - 1));
@@ -280,23 +264,6 @@ std::vector<move> move_generator::get_rook_moves() {
     if (turn == COLOUR::NONE)
         return {};
     std::vector<move> candidates;
-
-    // if (turn == COLOUR::WHITE) {
-    //     u64 wrooks = current.white_rooks;
-    //     while (wrooks) {
-    //         u64 rook_location = wrooks ^ (wrooks & (wrooks - 1));
-    //         filter_hv_moves(PIECE::ROOK, rook_location, candidates);
-    //         wrooks &= wrooks - 1;
-    //     }
-    // } else {
-    //     u64 brooks = current.black_rooks;
-    //     while (brooks) {
-    //         u64 rook_location = brooks ^ (brooks & (brooks - 1));
-    //         filter_hv_moves(PIECE::ROOK, rook_location, candidates);
-    //         brooks &= brooks - 1;
-    //     }
-    // }
-
     u64 rooks = current.pieces[get_piece_idx(turn, PIECE::ROOK)];
     while (rooks) {
         u64 rook_location = rooks ^ (rooks & (rooks - 1));
@@ -311,24 +278,6 @@ std::vector<move> move_generator::get_queen_moves() {
         return {};
 
     std::vector<move> candidates;
-    // if (turn == COLOUR::WHITE) {
-    //     u64 wqueens = current.white_queens;
-    //     while (wqueens) {
-    //         u64 queen_location = wqueens ^ (wqueens & (wqueens - 1));
-    //         filter_hv_moves(PIECE::QUEEN, queen_location, candidates);
-    //         filter_diagonal_moves(PIECE::QUEEN, queen_location, candidates);
-    //         wqueens &= wqueens - 1;
-    //     }
-    // } else {
-    //     u64 bqueens = current.black_queens;
-    //     while (bqueens) {
-    //         u64 queen_location = bqueens ^ (bqueens & (bqueens - 1));
-    //         filter_hv_moves(PIECE::QUEEN, queen_location, candidates);
-    //         filter_diagonal_moves(PIECE::QUEEN, queen_location, candidates);
-    //         bqueens &= bqueens - 1;
-    //     }
-    // }
-    // return candidates;
     u64 queens = current.pieces[get_piece_idx(turn, PIECE::QUEEN)];
     while (queens) {
         u64 queen_location = queens ^ (queens & (queens - 1));
@@ -344,24 +293,6 @@ std::vector<move> move_generator::get_knight_moves() {
         return {};
 
     std::vector<move> candidates;
-
-    // if (turn == COLOUR::WHITE) {
-    //     u64 wknights = current.white_knights;
-    //     while (wknights) {
-    //         u64 knight_location = wknights ^ (wknights & (wknights - 1));
-    //         filter_offset_moves<knight_offsets>(PIECE::KNIGHT, knight_location, candidates);
-    //         wknights &= wknights - 1;
-    //     }
-    // } else {
-    //     u64 bknights = current.black_knights;
-    //     while (bknights) {
-    //         u64 knight_location = bknights ^ (bknights & (bknights - 1));
-    //         filter_offset_moves<knight_offsets>(PIECE::KNIGHT, knight_location, candidates);
-    //         bknights &= bknights - 1;
-    //     }
-    // }
-
-    // return candidates;
     u64 knights = current.pieces[get_piece_idx(turn, PIECE::KNIGHT)];
     while (knights) {
         u64 knight_location = knights ^ (knights & (knights - 1));
@@ -376,15 +307,6 @@ std::vector<move> move_generator::get_king_moves() {
         return {};
 
     std::vector<move> candidates;
-
-    // if (turn == COLOUR::WHITE) {
-    //     if (current.white_king)
-    //         filter_offset_moves<king_offsets>(PIECE::KING, current.white_king, candidates);
-    // } else {
-    //     if (current.black_king)
-    //         filter_offset_moves<king_offsets>(PIECE::KING, current.black_king, candidates);
-    // }
-
     u64 king_location = current.pieces[get_piece_idx(turn, PIECE::KING)];
     filter_offset_moves<king_offsets>(PIECE::KING, king_location, candidates);
 
@@ -414,7 +336,7 @@ std::vector<move> move_generator::get_pawn_moves() {
             // if at start square, can have double push
             if (pawn_loc / 8 == 1) {
                 u64 double_step = pawn << (2 * 8);
-                if (!(double_step & current.all_pieces()))
+                if (!(single_step & current.all_pieces()) && !(double_step & current.all_pieces()))
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, double_step));
             }
 
@@ -451,7 +373,7 @@ std::vector<move> move_generator::get_pawn_moves() {
             // if at start square, can have double push
             if (pawn_loc / 8 == 6) {
                 u64 double_step = pawn >> (2 * 8);
-                if (!(double_step & current.all_pieces()))
+                if (!(single_step & current.all_pieces()) && !(double_step & current.all_pieces()))
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, double_step));
             }
 
@@ -583,8 +505,9 @@ bool move_generator::is_sqr_attacked(const u64 &target_location) {
     if (turn == COLOUR::NONE || !target_location)
         return false;
 
+    COLOUR enemy_colour = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
     u64 cur_enemy =
-        current.pieces[get_piece_idx(turn, PIECE::BISHOP)] | current.pieces[get_piece_idx(turn, PIECE::QUEEN)];
+        current.pieces[get_piece_idx(enemy_colour, PIECE::BISHOP)] | current.pieces[get_piece_idx(enemy_colour, PIECE::QUEEN)];
     while (cur_enemy) {
         u64 bishop = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
         if (is_attacked_diagonally(target_location, bishop))
@@ -592,7 +515,7 @@ bool move_generator::is_sqr_attacked(const u64 &target_location) {
         cur_enemy &= cur_enemy - 1;
     }
 
-    cur_enemy = current.pieces[get_piece_idx(turn, PIECE::ROOK)] | current.pieces[get_piece_idx(turn, PIECE::QUEEN)];
+    cur_enemy = current.pieces[get_piece_idx(enemy_colour, PIECE::ROOK)] | current.pieces[get_piece_idx(enemy_colour, PIECE::QUEEN)];
     while (cur_enemy) {
         u64 rook = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
         if (is_attacked_hv(target_location, rook))
@@ -600,7 +523,7 @@ bool move_generator::is_sqr_attacked(const u64 &target_location) {
         cur_enemy &= cur_enemy - 1;
     }
 
-    cur_enemy = current.pieces[get_piece_idx(turn, PIECE::KNIGHT)];
+    cur_enemy = current.pieces[get_piece_idx(enemy_colour, PIECE::KNIGHT)];
     while (cur_enemy) {
         u64 knight = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
         if (is_attacked_by_offset_piece<knight_offsets>(target_location, knight))
@@ -608,107 +531,18 @@ bool move_generator::is_sqr_attacked(const u64 &target_location) {
         cur_enemy &= cur_enemy - 1;
     }
 
-    cur_enemy = current.pieces[get_piece_idx(turn, PIECE::KING)];
+    cur_enemy = current.pieces[get_piece_idx(enemy_colour, PIECE::KING)];
     if (is_attacked_by_offset_piece<king_offsets>(target_location, cur_enemy))
         return true;
 
-    cur_enemy = current.pieces[get_piece_idx(turn, PIECE::PAWN)];
+    cur_enemy = current.pieces[get_piece_idx(enemy_colour, PIECE::PAWN)];
     while (cur_enemy) {
         u64 pawn = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
         if (is_attacked_by_pawn(target_location, pawn))
             return true;
         cur_enemy &= cur_enemy - 1;
     }
-    // if (turn == COLOUR::WHITE) {
-    //     u64 cur_enemy = current.black_bishops;
-    //     while (cur_enemy) {
-    //         u64 bishop = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_diagonally(target_location, bishop))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.black_rooks;
-    //     while (cur_enemy) {
-    //         u64 rook = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_hv(target_location, rook))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.black_queens;
-    //     while (cur_enemy) {
-    //         u64 queen = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_hv(target_location, queen) || is_attacked_diagonally(target_location, queen))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.black_knights;
-    //     while (cur_enemy) {
-    //         u64 knight = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_by_offset_piece<knight_offsets>(target_location, knight))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.black_king;
-    //     if (is_attacked_by_offset_piece<king_offsets>(target_location, cur_enemy))
-    //         return true;
-
-    //     cur_enemy = current.black_pawns;
-    //     while (cur_enemy) {
-    //         u64 pawn = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_by_pawn(target_location, pawn))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-    // } else {
-    //     u64 cur_enemy = current.white_bishops;
-    //     while (cur_enemy) {
-    //         u64 bishop = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_diagonally(target_location, bishop))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.white_rooks;
-    //     while (cur_enemy) {
-    //         u64 rook = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_hv(target_location, rook))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.white_queens;
-    //     while (cur_enemy) {
-    //         u64 queen = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_hv(target_location, queen) || is_attacked_diagonally(target_location, queen))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.white_knights;
-    //     while (cur_enemy) {
-    //         u64 knight = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_by_offset_piece<knight_offsets>(target_location, knight))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-
-    //     cur_enemy = current.white_king;
-    //     if (is_attacked_by_offset_piece<king_offsets>(target_location, cur_enemy))
-    //         return true;
-
-    //     cur_enemy = current.white_pawns;
-    //     while (cur_enemy) {
-    //         u64 pawn = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
-    //         if (is_attacked_by_pawn(target_location, pawn))
-    //             return true;
-    //         cur_enemy &= cur_enemy - 1;
-    //     }
-    // }
-
+    
     return false;
 }
 
@@ -725,7 +559,6 @@ bool move_generator::is_in_check_after(const move &mv) {
 
     board temp = current;
     current.apply_move(mv);
-    current.update()
 
     if (is_in_check()) {
         current = temp;

@@ -55,26 +55,11 @@ template <typename rulebook> class engine {
         for (int i = 0; i < moves.size(); i++) {
             if (moves[i].piece_captured) {
                 auto [end_piece_colour, end_piece] = b.get_piece(moves[i].end_location);
-                // capture piece of higher value
-                // if (PIECE_VALUES[static_cast<int>(moves[i].piece)] <= PIECE_VALUES[static_cast<int>(end_piece)]) {
-                //     score[i] = 10;
-                //     temp.push_back(moves[i]);
-                // }
-                // // capture piece of lower value
-                // else {
-                //     temp.push_back(moves[i]);
-                // }
                 score[i] =
                     10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(moves[i].piece)];
-            }
-            // else if(mg.is_attacked_by_pawn(moves[i].end_location,)){
-
-            // }
-            else {
+            } else {
                 score[i] = 1;
-                // temp.push_back(moves[i]);
             }
-            // else if()
         }
         std::vector<int> idx(moves.size());
         for (int i = 0; i < moves.size(); i++)
@@ -92,31 +77,35 @@ template <typename rulebook> class engine {
     // minimax with alpha beta pruning upto specified depth
     // returns current evaluation of the position, and the best move.
     std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta) {
-        move empty;
         if (turn == COLOUR::NONE)
-            return {empty, 0.0f};
+            return {move(), 0.0f};
 
         std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
 
         // if no moves
         if (all_moves.empty()) {
             move_generator checker(b, turn);
+
+            // checkmate
             if (checker.is_in_check()) {
                 float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
                                                           : PIECE_VALUES[static_cast<int>(PIECE::KING)];
-                return {empty, mate_eval};
-            } else {
-                return {empty, 0.0f};
+                return {move(), mate_eval};
+            }
+            // stalemate
+            else {
+                return {move(), 0.0f};
             }
         }
 
-        std::pair<move, float> best_move = (turn == COLOUR::WHITE) ? std::pair{empty, -INF} : std::pair{empty, INF};
-
+        std::pair<move, float> best_move = (turn == COLOUR::WHITE) ? std::pair{move(), -INF} : std::pair{move(), INF};
         order_moves(b, all_moves);
 
         for (const move &mv : all_moves) {
             board next_board = b;
             COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+
+            // simulate current move
             if (mv.castle_kside) {
                 rules.castle_kside(next_board, turn);
             } else if (mv.castle_qside) {
@@ -154,9 +143,10 @@ template <typename rulebook> class engine {
             return 0;
         std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
 
+        // if no moves
         if (all_moves.empty()) {
-            // checkmate
             move_generator checker(b, turn);
+            // checkmate
             if (checker.is_in_check()) {
                 float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
                                                           : PIECE_VALUES[static_cast<int>(PIECE::KING)];
@@ -221,81 +211,10 @@ template <typename rulebook> class engine {
             u64 cur = b.pieces[i];
             while (cur) {
                 int pos = lsb(cur) ^ 56;
-                eval += pst[i - 6][pos] + PIECE_VALUES[i - 5];
+                eval -= pst[i - 6][pos] + PIECE_VALUES[i - 5];
                 cur &= cur - 1;
             }
         }
-        // u64 cur = b.white_bishops;
-        // while (cur) {
-        //     int pos = lsb(cur);
-        //     eval += bishop_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::BISHOP)];
-        //     cur &= cur - 1;
-        // }
-        // cur = b.black_bishops;
-        // while (cur) {
-        //     int pos = lsb(cur) ^ 56;
-        //     eval -= bishop_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::BISHOP)];
-        //     cur &= cur - 1;
-        // }
-
-        // cur = b.white_knights;
-        // while (cur) {
-        //     int pos = lsb(cur);
-        //     eval += knight_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::KNIGHT)];
-        //     cur &= cur - 1;
-        // }
-        // cur = b.black_knights;
-        // while (cur) {
-        //     int pos = lsb(cur) ^ 56;
-        //     eval -= knight_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::KNIGHT)];
-        //     cur &= cur - 1;
-        // }
-
-        // cur = b.white_rooks;
-        // while (cur) {
-        //     int pos = lsb(cur);
-        //     eval += rook_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::ROOK)];
-        //     cur &= cur - 1;
-        // }
-        // cur = b.black_rooks;
-        // while (cur) {
-        //     int pos = lsb(cur) ^ 56;
-        //     eval -= rook_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::ROOK)];
-        //     cur &= cur - 1;
-        // }
-
-        // cur = b.white_queens;
-        // while (cur) {
-        //     int pos = lsb(cur);
-        //     eval += queen_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::QUEEN)];
-        //     cur &= cur - 1;
-        // }
-        // cur = b.black_queens;
-        // while (cur) {
-        //     int pos = lsb(cur) ^ 56;
-        //     eval -= queen_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::QUEEN)];
-        //     cur &= cur - 1;
-        // }
-
-        // cur = b.white_pawns;
-        // while (cur) {
-        //     int pos = lsb(cur);
-        //     eval += pawn_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::PAWN)];
-        //     cur &= cur - 1;
-        // }
-        // cur = b.black_pawns;
-        // while (cur) {
-        //     int pos = lsb(cur) ^ 56;
-        //     eval -= pawn_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::PAWN)];
-        //     cur &= cur - 1;
-        // }
-
-        // int pos = lsb(b.white_king);
-        // eval += king_mg_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::KING)];
-
-        // pos = lsb(b.black_king) ^ 56;
-        // eval -= king_mg_st[pos] + PIECE_VALUES[static_cast<int>(PIECE::KING)];
-
         // cout << "final eval : " << eval << endl;
         // b.print_board();
         return eval;
