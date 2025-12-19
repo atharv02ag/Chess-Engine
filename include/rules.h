@@ -16,10 +16,10 @@ template <typename derived> class rules {
     void castle_qside(board &chess_board, const COLOUR &turn) {
         static_cast<derived *>(this)->castle_qside(chess_board, turn);
     }
-    vector<move> get_castling_moves(const board &chess_board, const COLOUR &turn) {
+    std::vector<move> get_castling_moves(const board &chess_board, const COLOUR &turn) {
         return static_cast<derived *>(this)->get_castling_moves(chess_board, turn);
     }
-    vector<move> get_all_legal_moves(const board &chess_board, const COLOUR &turn) {
+    std::vector<move> get_all_legal_moves(const board &chess_board, const COLOUR &turn) {
         return static_cast<derived *>(this)->get_all_legal_moves(chess_board, turn);
     }
 };
@@ -91,11 +91,11 @@ class std_rules : public rules<std_rules> {
         }
     }
 
-    vector<move> get_castling_moves(const board &chess_board, const COLOUR &turn) {
+    std::vector<move> get_castling_moves(const board &chess_board, const COLOUR &turn) {
         if (turn == COLOUR::NONE)
             return {};
         move_generator helper(chess_board, turn);
-        vector<move> candidates;
+        std::vector<move> candidates;
         if (turn == COLOUR::WHITE) {
             u64 rook_landing = (1ULL << 5);
             u64 king_landing = (1ULL << 6);
@@ -139,15 +139,15 @@ class std_rules : public rules<std_rules> {
         return candidates;
     }
 
-    vector<move> get_all_legal_moves(const board &chess_board, const COLOUR &turn) {
+    std::vector<move> get_all_legal_moves(const board &chess_board, const COLOUR &turn) {
         if (turn == COLOUR::NONE)
             return {};
         move_generator generator(chess_board, turn);
-        vector<move> generic_moves = generator.get_all_generic_moves();
-        vector<move> castling_moves = get_castling_moves(chess_board, turn);
+        std::vector<move> generic_moves = generator.get_all_generic_moves();
+        std::vector<move> castling_moves = get_castling_moves(chess_board, turn);
         if (castling_moves.empty())
             return generic_moves;
-        vector<move> result;
+        std::vector<move> result;
         for (auto &m : generic_moves) {
             result.push_back(std::move(m));
         }

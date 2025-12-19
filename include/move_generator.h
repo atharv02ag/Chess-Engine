@@ -8,13 +8,13 @@ class move_generator {
     move_generator(const move_generator &mg) : current(mg.current), turn(mg.turn) {}
     move_generator(move_generator &&mg) noexcept : current(std::move(mg.current)), turn(std::move(mg.turn)) {}
 
-    vector<move> get_bishop_moves();
-    vector<move> get_rook_moves();
-    vector<move> get_queen_moves();
-    vector<move> get_knight_moves();
-    vector<move> get_king_moves();
-    vector<move> get_pawn_moves();
-    vector<move> get_all_generic_moves();
+    std::vector<move> get_bishop_moves();
+    std::vector<move> get_rook_moves();
+    std::vector<move> get_queen_moves();
+    std::vector<move> get_knight_moves();
+    std::vector<move> get_king_moves();
+    std::vector<move> get_pawn_moves();
+    std::vector<move> get_all_generic_moves();
     bool is_sqr_attacked(const u64 &target_location);
     bool is_in_check();
     bool is_in_check_after(const move &mv);
@@ -25,8 +25,8 @@ class move_generator {
   private:
     board current;
     COLOUR turn;
-    void filter_diagonal_moves(const PIECE &piece, const u64 &piece_location, vector<move> &candidates);
-    void filter_hv_moves(const PIECE &piece, const u64 &piece_location, vector<move> &candidates);
+    void filter_diagonal_moves(const PIECE &piece, const u64 &piece_location, std::vector<move> &candidates);
+    void filter_hv_moves(const PIECE &piece, const u64 &piece_location, std::vector<move> &candidates);
     bool is_attacked_diagonally(const u64 &target_location, const u64 &attacker_location);
     bool is_attacked_hv(const u64 &target_location, const u64 &attacker_location);
     bool is_attacked_by_pawn(const u64 &target_location, const u64 &attacker_location);
@@ -47,7 +47,7 @@ class move_generator {
     }
 
     template <auto &offsets>
-    void filter_offset_moves(const PIECE &piece, const u64 &piece_location, vector<move> &candidates) {
+    void filter_offset_moves(const PIECE &piece, const u64 &piece_location, std::vector<move> &candidates) {
         int r = lsb(piece_location) / 8;
         int c = lsb(piece_location) % 8;
         for (const auto &[d_r, d_c] : offsets) {
