@@ -167,6 +167,7 @@ void board::apply_move(const move &move_to_make) {
     if (!move_to_make.start_location || !move_to_make.end_location) {
         cout << "board::apply_move : invalid locations" << endl;
         move_to_make.print_move();
+        print_board();
     }
 
     set_piece(move_to_make.start_location, PIECE::EMPTY, COLOUR::NONE);

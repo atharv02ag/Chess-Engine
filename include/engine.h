@@ -158,7 +158,13 @@ template <typename rulebook> class engine {
             }
         }
 
-        float best_eval = (turn == COLOUR::WHITE) ? -INF : INF;
+        float best_eval = base_eval(b);
+        if(turn == COLOUR::WHITE){
+            alpha = std::max(alpha, best_eval);
+        }
+        else{
+            beta = std::min(beta, best_eval);
+        }
         bool no_capture_moves = true;
         order_moves(b, all_moves);
 
@@ -191,12 +197,12 @@ template <typename rulebook> class engine {
                 break;
         }
         if (no_capture_moves)
-            return base_eval(b, turn);
+            return base_eval(b);
         else
             return best_eval;
     }
 
-    float base_eval(const board &b, const COLOUR &turn) {
+    float base_eval(const board &b) {
         float eval = 0;
         for (int i = 0; i < 6; i++) {
             u64 cur = b.pieces[i];

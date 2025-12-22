@@ -12,6 +12,7 @@ using u64 = uint64_t;
 using u32 = uint32_t;
 using std::cout;
 using std::endl;
+using std::cin;
 
 inline constexpr float INF = 1000000.0f;
 

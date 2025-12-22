@@ -484,18 +484,18 @@ bool move_generator::is_attacked_by_pawn(const u64 &target_location, const u64 &
         int pawn_loc = lsb(attacker_location);
         if (pawn_loc == 7)
             return false;
-        if (pawn_loc % 8 != 0 && target_location == ((attacker_location << 8) >> 1))
+        if (pawn_loc % 8 != 0 && target_location == ((attacker_location >> 8) >> 1))
             return true;
-        if (pawn_loc % 8 != 7 && target_location == ((attacker_location << 8) << 1))
+        if (pawn_loc % 8 != 7 && target_location == ((attacker_location >> 8) << 1))
             return true;
         return false;
     } else {
         int pawn_loc = lsb(attacker_location);
         if (pawn_loc == 0)
             return false;
-        if (pawn_loc % 8 != 0 && target_location == ((attacker_location >> 8) >> 1))
+        if (pawn_loc % 8 != 0 && target_location == ((attacker_location << 8) >> 1))
             return true;
-        if (pawn_loc % 8 != 7 && target_location == ((attacker_location >> 8) << 1))
+        if (pawn_loc % 8 != 7 && target_location == ((attacker_location << 8) << 1))
             return true;
         return false;
     }

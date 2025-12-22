@@ -62,8 +62,8 @@ class std_rules : public rules<std_rules> {
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
         } else {
-            chess_board.apply_move(move(PIECE::KING, COLOUR::WHITE, (1ULL << (8 * 7) << 4), (1ULL << (8 * 7) << 2)));
-            chess_board.apply_move(move(PIECE::ROOK, COLOUR::WHITE, (1ULL << (8 * 7)), (1ULL << (8 * 7) << 3)));
+            chess_board.apply_move(move(PIECE::KING, COLOUR::BLACK, (1ULL << (8 * 7) << 4), (1ULL << (8 * 7) << 2)));
+            chess_board.apply_move(move(PIECE::ROOK, COLOUR::BLACK, (1ULL << (8 * 7)), (1ULL << (8 * 7) << 3)));
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
         }

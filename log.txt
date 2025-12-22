@@ -1,499 +1,90 @@
-|     | W_K | W_R |     |     | W_B |     | W_R | 
-|     | W_P | W_P | W_Q | W_P | W_P | W_P | W_P | 
-|     |     | W_N |     |     | W_N |     |     | 
-| W_P |     |     | W_P |     |     |     |     | 
-| B_P |     |     | B_P |     | B_B | W_B |     | 
-|     |     | B_N |     |     | B_N |     | B_P | 
-|     | B_P | B_P | B_Q | B_P | B_P | B_P |     | 
-|     | B_K | B_R |     |     | B_B |     | B_R | 
+| W_R |     | W_B | W_K | W_Q |     | W_R |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     | W_P | 
+|     |     |     | B_P |     |     |     |     | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_P |     | 
+| W_B | B_N |     | B_K |     | B_B |     | B_R | 
 
-iter : 0
-|     | W_K | W_R |     |     | W_B |     | W_R | 
-|     | W_P | W_P | W_Q | W_P | W_P | W_P | W_P | 
-|     |     | W_N |     |     | W_N |     |     | 
-| W_P |     |     | W_P |     |     |     |     | 
-| B_P |     |     | B_P |     | B_B | W_B |     | 
-|     |     | B_N |     |     | B_N |     | B_P | 
-|     | B_P | B_P | B_Q | B_P | B_P | B_P |     | 
-|     | B_K | B_R |     |     | B_B |     | B_R | 
+before castle :-
+| W_R |     | W_B | W_K | W_Q |     |     |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     |     | 
+|     |     |     | B_P |     |     |     | W_P | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     | B_K |     |     |     | B_R | 
 
-COLOUR : WHITE PIECE : ROOK START : (0,0) END : (0,1)
-eval : 133
-COLOUR : BLACK PIECE : KNIGHT START : (5,2) END : (3,1)
-eval : -110
-iter : 1
-|     | W_K | W_R |     |     | W_B | W_R |     | 
-|     | W_P | W_P | W_Q | W_P | W_P | W_P | W_P | 
-|     |     | W_N |     |     | W_N |     |     | 
-| W_P |     |     | W_P |     |     | B_N |     | 
-| B_P |     |     | B_P |     | B_B | W_B |     | 
-|     |     | B_N |     |     |     |     | B_P | 
-|     | B_P | B_P | B_Q | B_P | B_P | B_P |     | 
-|     | B_K | B_R |     |     | B_B |     | B_R | 
+after castle
+| W_R |     | W_B | W_K | W_Q |     |     |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     |     | 
+|     |     |     | B_P |     |     |     | W_P | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     |     | B_R | B_K |     |     | 
 
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-COLOUR : WHITE PIECE : BISHOP START : (4,1) END : (3,0)
-eval : 126.5
-COLOUR : BLACK PIECE : BISHOP START : (4,2) END : (5,3)
-eval : -110.5
-iter : 2
-|     | W_K | W_R |     |     | W_B | W_R |     | 
-|     | W_P | W_P | W_Q | W_P | W_P | W_P | W_P | 
-|     |     | W_N |     |     | W_N |     |     | 
-| W_P |     |     | W_P |     |     | B_N | W_B | 
-| B_P |     |     | B_P |     |     |     |     | 
-|     |     | B_N |     | B_B |     |     | B_P | 
-|     | B_P | B_P | B_Q | B_P | B_P | B_P |     | 
-|     | B_K | B_R |     |     | B_B |     | B_R | 
+before castle :-
+| W_R |     | W_B | W_K |     |     | W_Q |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     | W_P | 
+|     |     |     | B_P |     |     |     |     | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     | B_K |     |     |     | B_R | 
 
-COLOUR : WHITE PIECE : PAWN START : (1,0) END : (2,0)
-eval : 128.5
-COLOUR : BLACK PIECE : PAWN START : (5,0) END : (4,0)
-eval : -115.5
-iter : 3
-|     | W_K | W_R |     |     | W_B | W_R |     | 
-|     | W_P | W_P | W_Q | W_P | W_P | W_P |     | 
-|     |     | W_N |     |     | W_N |     | W_P | 
-| W_P |     |     | W_P |     |     | B_N | W_B | 
-| B_P |     |     | B_P |     |     |     | B_P | 
-|     |     | B_N |     | B_B |     |     |     | 
-|     | B_P | B_P | B_Q | B_P | B_P | B_P |     | 
-|     | B_K | B_R |     |     | B_B |     | B_R | 
+after castle
+| W_R |     | W_B | W_K |     |     | W_Q |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     | W_P | 
+|     |     |     | B_P |     |     |     |     | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     |     | B_R | B_K |     |     | 
 
-COLOUR : WHITE PIECE : KNIGHT START : (2,2) END : (4,1)
-eval : 148
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,1)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-board::apply_move : invalid locations
-COLOUR : BLACK PIECE : KING START : (8,0) END : (7,0)
-board::set_piece : invalid location : 0 colour : NONE
-EMPTY
-COLOUR : BLACK PIECE : KNIGHT START : (3,1) END : (1,0)
-eval : -109
-iter : 4
-|     | W_K | W_R |     |     | W_B | W_R |     | 
-|     | W_P | W_P | W_Q | W_P | W_P | W_P | B_N | 
-|     |     | W_N |     |     |     |     | W_P | 
-| W_P |     |     | W_P |     |     |     | W_B | 
-| B_P |     |     | B_P |     |     | W_N | B_P | 
-|     |     | B_N |     | B_B |     |     |     | 
-|     | B_P | B_P | B_Q | B_P | B_P | B_P |     | 
-|     | B_K | B_R |     |     | B_B |     | B_R | 
+before castle :-
+| W_R |     | W_B | W_K |     | W_Q |     |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     | W_P | 
+|     |     |     | B_P |     |     |     |     | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     | B_K |     |     |     | B_R | 
 
-COLOUR : WHITE PIECE : BISHOP START : (3,0) END : (2,1)
-eval : 118
-COLOUR : BLACK PIECE : KNIGHT START : (1,0) END : (3,1)
-eval : -92.5
-iter : 5
-|     | W_K | W_R |     |     | W_B | W_R |     | 
-|     | W_P | W_P | W_Q | W_P | W_P | W_P |     | 
-|     |     | W_N |     |     |     | W_B | W_P | 
-| W_P |     |     | W_P |     |     | B_N |     | 
-| B_P |     |     | B_P |     |     | W_N | B_P | 
-|     |     | B_N |     | B_B |     |     |     | 
-|     | B_P | B_P | B_Q | B_P | B_P | B_P |     | 
-|     | B_K | B_R |     |     | B_B |     | B_R | 
+after castle
+| W_R |     | W_B | W_K |     | W_Q |     |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     | W_P | 
+|     |     |     | B_P |     |     |     |     | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     |     | B_R | B_K |     |     | 
 
-COLOUR : WHITE PIECE : ROOK START : (0,5) END : (0,3)
-eval : 148.5
+before castle :-
+|     | W_R | W_B | W_K | W_Q |     |     |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     | W_P | 
+|     |     |     | B_P |     |     |     |     | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     | B_K |     |     |     | B_R | 
+
+after castle
+|     | W_R | W_B | W_K | W_Q |     |     |     | 
+| W_P | W_P | W_P | W_P | W_P | W_P |     | W_P | 
+|     |     |     |     |     |     |     | W_P | 
+|     |     |     | B_P |     |     |     |     | 
+|     |     |     |     |     |     |     |     | 
+|     |     | B_P |     |     | B_N |     | B_P | 
+| B_P |     |     |     | B_Q | B_P | B_B |     | 
+| W_B | B_N |     |     | B_R | B_K |     |     | 
+
+COLOUR : WHITE PIECE : ROOK START : (0,1) END : (2,1)
