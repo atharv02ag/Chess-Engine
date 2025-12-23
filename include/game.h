@@ -7,7 +7,7 @@ template <typename rulebook> class game {
     board chess_board;
     COLOUR turn;
     rulebook rules;
-    
+
     game();
     game(const std::string &fen);
     void show_board();
@@ -24,22 +24,41 @@ template <typename rulebook> game<rulebook>::game(const std::string &fen) {
 
 template <typename rulebook> void game<rulebook>::show_board() { chess_board.print_board(); }
 
+// Parses moves in format "e2e4", "g1f3", "k" and "q" (for black castling), "K" and "Q" (for white castling)
 template <typename rulebook> move game<rulebook>::parse_move(const std::string &move_str) {
+    if (move_str[0] == 'k') {
+        return move(PIECE::KING, COLOUR::BLACK, true, false);
+    } else if (move_str[0] == 'q') {
+        return move(PIECE::KING, COLOUR::BLACK, false, true);
+    } else if (move_str[0] == 'K') {
+        return move(PIECE::KING, COLOUR::WHITE, true, false);
+    } else if (move_str[0] == 'Q') {
+        return move(PIECE::KING, COLOUR::WHITE, false, true);
+    }
     int start_col = move_str[0] - 'a';
     int start_row = move_str[1] - '1';
     int end_col = move_str[2] - 'a';
     int end_row = move_str[3] - '1';
     u64 start_location = 1ULL << (start_row * 8) << start_col;
     u64 end_location = 1ULL << (end_row * 8) << end_col;
-    
+
     auto [start_piece_colour, start_piece_type] = chess_board.get_piece(start_location);
+
     if (start_piece_colour != COLOUR::NONE && start_piece_type != PIECE::EMPTY) {
         auto [end_piece_colour, end_piece_type] = chess_board.get_piece(end_location);
+
+        // enpass move detection
+        if (start_piece_type == PIECE::PAWN && end_location == chess_board.enpass_capture_square)
+            return move(start_piece_type, start_piece_colour, start_location, end_location, true, true);
+
+        // capture move detection
         if (end_piece_type != PIECE::EMPTY)
             return move(start_piece_type, start_piece_colour, start_location, end_location, true);
 
         return move(start_piece_type, start_piece_colour, start_location, end_location);
     }
+
+    // invalid move
     return move(PIECE::EMPTY, COLOUR::NONE, start_location, end_location);
 }
 
@@ -69,6 +88,7 @@ template <typename rulebook> bool game<rulebook>::make_move(const move &move_to_
     }
     chess_board.apply_move(move_to_make);
     rules.update_flags(chess_board, move_to_make);
+
     turn = chess_board.turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
     return true;
 }

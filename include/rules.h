@@ -35,6 +35,7 @@ class std_rules : public rules<std_rules> {
         if (move_made.colour == COLOUR::NONE)
             return;
         update_castling_flags(chess_board, move_made);
+        update_enpass_square(chess_board, move_made);
     }
 
     void castle_kside(board &chess_board, const COLOUR &turn) {
@@ -170,5 +171,25 @@ class std_rules : public rules<std_rules> {
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
             }
         }
+    }
+
+    void update_enpass_square(board &chess_board, const move &move_made) {
+        if(move_made.colour == COLOUR::NONE || move_made.piece != PIECE::PAWN){
+            chess_board.enpass_capture_square = 0ULL;
+            return;
+        }
+        if(move_made.colour == COLOUR::WHITE){
+            if(lsb(move_made.start_location)/8 == 1 && lsb(move_made.end_location)/8 == 3){
+                chess_board.enpass_capture_square = move_made.start_location << 8;
+                return;
+            }
+        }
+        else{
+            if(lsb(move_made.start_location)/8 == 6 && lsb(move_made.end_location)/8 == 4){
+                chess_board.enpass_capture_square = move_made.start_location >> 8;
+                return;
+            }
+        }
+        chess_board.enpass_capture_square = 0ULL;
     }
 };

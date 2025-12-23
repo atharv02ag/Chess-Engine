@@ -4,6 +4,7 @@ board::board() {
     for (int i = 0; i < 12; i++)
         pieces[i] = 0ULL;
     turn = COLOUR::WHITE;
+    enpass_capture_square = 0ULL;
     flags = 0;
     flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
     flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
@@ -95,6 +96,13 @@ void board::load_fen(const std::string &fen) {
         flags |= static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
 
     // enpass left unimplemented
+    if (ep != "-") {
+        int ep_file = ep[0] - 'a';
+        int ep_rank = ep[1] - '1';
+        enpass_capture_square = (1ULL << (ep_rank * 8 + ep_file));
+    } else {
+        enpass_capture_square = 0ULL;
+    }
     // halmove and fullmove ma chudaye
 }
 
@@ -156,6 +164,7 @@ std::pair<COLOUR, PIECE> board::get_piece(u64 location) const {
     return std::pair{colour, piece};
 }
 
+// NOTE : Castling is handled by 'rules' class, called in games::make_move
 void board::apply_move(const move &move_to_make) {
     // ASSUMPTION : the colour and piece returned by get_piece() is the same corresponding to move_to_make
 
@@ -168,6 +177,16 @@ void board::apply_move(const move &move_to_make) {
         cout << "board::apply_move : invalid locations" << endl;
         move_to_make.print_move();
         print_board();
+    }
+
+    if (move_to_make.enpass) {
+        if (move_to_make.colour == COLOUR::WHITE) {
+            u64 captured_pawn_location = move_to_make.end_location >> 8;
+            set_piece(captured_pawn_location, PIECE::EMPTY, COLOUR::NONE);
+        } else {
+            u64 captured_pawn_location = move_to_make.end_location << 8;
+            set_piece(captured_pawn_location, PIECE::EMPTY, COLOUR::NONE);
+        }
     }
 
     set_piece(move_to_make.start_location, PIECE::EMPTY, COLOUR::NONE);

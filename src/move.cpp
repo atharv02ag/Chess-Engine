@@ -16,6 +16,9 @@ void move::print_move() const {
     int end_col = lsb(end_location) % 8;
     if (piece_captured)
         cout << "CAPTURE, ";
+    if(enpass){
+        cout << "ENPASSANT, ";
+    }
     cout << "COLOUR : " << colour_names[static_cast<int>(colour)] << " PIECE : " << piece_names[static_cast<int>(piece)]
          << " START : (" << start_row << "," << start_col << ") END : (" << end_row << "," << end_col << ")" << endl;
 }
@@ -35,7 +38,8 @@ void move_generator::update(const board &new_board, const COLOUR &new_turn) {
     turn = new_turn;
 }
 
-void move_generator::filter_diagonal_moves(const PIECE &piece, const u64 &piece_location, std::vector<move> &candidates) {
+void move_generator::filter_diagonal_moves(const PIECE &piece, const u64 &piece_location,
+                                           std::vector<move> &candidates) {
     int r = lsb(piece_location) / 8;
     int c = lsb(piece_location) % 8;
     if (turn == COLOUR::WHITE) {
@@ -324,27 +328,31 @@ std::vector<move> move_generator::get_pawn_moves() {
             u64 pawn = white_pawns ^ (white_pawns & (white_pawns - 1));
             int pawn_loc = lsb(pawn);
 
+            // promotion logic here
             if (pawn_loc / 8 == 7) {
                 white_pawns &= white_pawns - 1;
                 continue;
             }
 
             u64 single_step = pawn << 8;
-            if (!(single_step & current.all_pieces()))
+            if (!(single_step & current.all_pieces())) {
                 candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step));
 
-            // if at start square, can have double push
-            if (pawn_loc / 8 == 1) {
-                u64 double_step = pawn << (2 * 8);
-                if (!(single_step & current.all_pieces()) && !(double_step & current.all_pieces()))
-                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, double_step));
+                // if at start square, can have double push
+                if (pawn_loc / 8 == 1) {
+                    u64 double_step = pawn << (2 * 8);
+                    if (!(double_step & current.all_pieces()))
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, double_step));
+                }
             }
 
             // left capture (possible if not on a-file)
             if (pawn_loc % 8 != 0) {
                 u64 left_capture = (pawn << 8) >> 1;
-                if ((left_capture & current.all_black_pieces()))
+                if (left_capture & current.all_black_pieces())
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true));
+                if (left_capture == current.enpass_capture_square)
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true, true));
             }
 
             // right capture (possible if not on h-file)
@@ -352,6 +360,8 @@ std::vector<move> move_generator::get_pawn_moves() {
                 u64 right_capture = (pawn << 8) << 1;
                 if (right_capture & current.all_black_pieces())
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true));
+                if (right_capture == current.enpass_capture_square)
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, true));
             }
             white_pawns &= white_pawns - 1;
         }
@@ -367,21 +377,24 @@ std::vector<move> move_generator::get_pawn_moves() {
             }
 
             u64 single_step = pawn >> 8;
-            if (!(single_step & current.all_pieces()))
+            if (!(single_step & current.all_pieces())) {
                 candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step));
 
-            // if at start square, can have double push
-            if (pawn_loc / 8 == 6) {
-                u64 double_step = pawn >> (2 * 8);
-                if (!(single_step & current.all_pieces()) && !(double_step & current.all_pieces()))
-                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, double_step));
+                // if at start square, can have double push
+                if (pawn_loc / 8 == 6) {
+                    u64 double_step = pawn >> (2 * 8);
+                    if (!(double_step & current.all_pieces()))
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, double_step));
+                }
             }
 
             // left capture (possible if not on a-file)
             if (pawn_loc % 8 != 0) {
                 u64 left_capture = (pawn >> 8) >> 1;
-                if ((left_capture & current.all_white_pieces()))
+                if (left_capture & current.all_white_pieces())
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true));
+                if (left_capture == current.enpass_capture_square)
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, true));
             }
 
             // right capture (possible if not on h-file)
@@ -389,6 +402,8 @@ std::vector<move> move_generator::get_pawn_moves() {
                 u64 right_capture = (pawn >> 8) << 1;
                 if (right_capture & current.all_white_pieces())
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true));
+                if (right_capture == current.enpass_capture_square)
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, true));
             }
             black_pawns &= black_pawns - 1;
         }
@@ -506,8 +521,8 @@ bool move_generator::is_sqr_attacked(const u64 &target_location) {
         return false;
 
     COLOUR enemy_colour = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-    u64 cur_enemy =
-        current.pieces[get_piece_idx(enemy_colour, PIECE::BISHOP)] | current.pieces[get_piece_idx(enemy_colour, PIECE::QUEEN)];
+    u64 cur_enemy = current.pieces[get_piece_idx(enemy_colour, PIECE::BISHOP)] |
+                    current.pieces[get_piece_idx(enemy_colour, PIECE::QUEEN)];
     while (cur_enemy) {
         u64 bishop = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
         if (is_attacked_diagonally(target_location, bishop))
@@ -515,7 +530,8 @@ bool move_generator::is_sqr_attacked(const u64 &target_location) {
         cur_enemy &= cur_enemy - 1;
     }
 
-    cur_enemy = current.pieces[get_piece_idx(enemy_colour, PIECE::ROOK)] | current.pieces[get_piece_idx(enemy_colour, PIECE::QUEEN)];
+    cur_enemy = current.pieces[get_piece_idx(enemy_colour, PIECE::ROOK)] |
+                current.pieces[get_piece_idx(enemy_colour, PIECE::QUEEN)];
     while (cur_enemy) {
         u64 rook = cur_enemy ^ (cur_enemy & (cur_enemy - 1));
         if (is_attacked_hv(target_location, rook))
@@ -542,7 +558,7 @@ bool move_generator::is_sqr_attacked(const u64 &target_location) {
             return true;
         cur_enemy &= cur_enemy - 1;
     }
-    
+
     return false;
 }
 

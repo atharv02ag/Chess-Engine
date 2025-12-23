@@ -7,6 +7,7 @@ class board {
     // wp, wr, wn, wb, wk, wq, bp, br, bn, bb, bk, bq
     u64 pieces[12];
     u32 flags;
+    u64 enpass_capture_square;
     COLOUR turn;
 
     board();

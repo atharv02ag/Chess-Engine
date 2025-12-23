@@ -44,185 +44,194 @@ template <typename rulebook> class engine {
   public:
     rulebook rules;
 
-    void order_moves(const board &b, std::vector<move> &moves) {
-        if (moves.empty())
-            return;
-        std::vector<float> score(moves.size());
-        // std::vector<move> temp;
-        COLOUR colour = moves[0].colour;
-        move_generator mg(b, colour);
-
-        for (int i = 0; i < moves.size(); i++) {
-            if (moves[i].piece_captured) {
-                auto [end_piece_colour, end_piece] = b.get_piece(moves[i].end_location);
-                score[i] =
-                    10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(moves[i].piece)];
-            } else {
-                score[i] = 1;
-            }
-        }
-        std::vector<int> idx(moves.size());
-        for (int i = 0; i < moves.size(); i++)
-            idx[i] = i;
-        std::sort(idx.begin(), idx.end(), [&](const int &i, const int &j) { return score[i] > score[j]; });
-        std::vector<move> temp;
-        for (int i = 0; i < moves.size(); i++) {
-            temp.push_back(moves[idx[i]]);
-        }
-        for (int i = 0; i < moves.size(); i++) {
-            moves[i] = temp[i];
-        }
-    }
-
-    // minimax with alpha beta pruning upto specified depth
-    // returns current evaluation of the position, and the best move.
-    std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta) {
-        if (turn == COLOUR::NONE)
-            return {move(), 0.0f};
-
-        std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
-
-        // if no moves
-        if (all_moves.empty()) {
-            move_generator checker(b, turn);
-
-            // checkmate
-            if (checker.is_in_check()) {
-                float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
-                                                          : PIECE_VALUES[static_cast<int>(PIECE::KING)];
-                return {move(), mate_eval};
-            }
-            // stalemate
-            else {
-                return {move(), 0.0f};
-            }
-        }
-
-        std::pair<move, float> best_move = (turn == COLOUR::WHITE) ? std::pair{move(), -INF} : std::pair{move(), INF};
-        order_moves(b, all_moves);
-
-        for (const move &mv : all_moves) {
-            board next_board = b;
-            COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-
-            // simulate current move
-            if (mv.castle_kside) {
-                rules.castle_kside(next_board, turn);
-            } else if (mv.castle_qside) {
-                rules.castle_qside(next_board, turn);
-            } else {
-                next_board.apply_move(mv);
-            }
-            rules.update_flags(next_board, mv);
-            // cout << "depth : " << depth << " ";
-            // mv.print_move();
-
-            float cur_evaluation = 0.0f;
-            if (depth == 1)
-                cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta);
-            else {
-                auto temp = minimax(next_board, next_turn, depth - 1, alpha, beta);
-                cur_evaluation = temp.second;
-            }
-
-            if (turn == COLOUR::WHITE && cur_evaluation > best_move.second) {
-                best_move = {mv, cur_evaluation};
-                alpha = std::max(alpha, cur_evaluation);
-            } else if (turn == COLOUR::BLACK && cur_evaluation < best_move.second) {
-                best_move = {mv, cur_evaluation};
-                beta = std::min(beta, cur_evaluation);
-            }
-            if (beta <= alpha)
-                break;
-        }
-        return best_move;
-    }
-
-    float base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta) {
-        if (turn == COLOUR::NONE)
-            return 0;
-        std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
-
-        // if no moves
-        if (all_moves.empty()) {
-            move_generator checker(b, turn);
-            // checkmate
-            if (checker.is_in_check()) {
-                float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
-                                                          : PIECE_VALUES[static_cast<int>(PIECE::KING)];
-                return mate_eval;
-            }
-            // stalemate
-            else {
-                return 0.0f;
-            }
-        }
-
-        float best_eval = base_eval(b);
-        if(turn == COLOUR::WHITE){
-            alpha = std::max(alpha, best_eval);
-        }
-        else{
-            beta = std::min(beta, best_eval);
-        }
-        bool no_capture_moves = true;
-        order_moves(b, all_moves);
-
-        for (const move &mv : all_moves) {
-            if (!mv.piece_captured)
-                continue;
-            no_capture_moves = false;
-            board next_board = b;
-            COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-            if (mv.castle_kside) {
-                rules.castle_kside(next_board, turn);
-            } else if (mv.castle_qside) {
-                rules.castle_qside(next_board, turn);
-            } else {
-                next_board.apply_move(mv);
-            }
-
-            // cout << "depth : " << depth << " ";
-            // mv.print_move();
-
-            float cur_evaluation = base_case_minimax(next_board, next_turn, depth - 1, alpha, beta);
-            if (turn == COLOUR::WHITE && cur_evaluation > best_eval) {
-                best_eval = cur_evaluation;
-                alpha = std::max(alpha, cur_evaluation);
-            } else if (turn == COLOUR::BLACK && cur_evaluation < best_eval) {
-                best_eval = cur_evaluation;
-                beta = std::min(beta, cur_evaluation);
-            }
-            if (beta <= alpha)
-                break;
-        }
-        if (no_capture_moves)
-            return base_eval(b);
-        else
-            return best_eval;
-    }
-
-    float base_eval(const board &b) {
-        float eval = 0;
-        for (int i = 0; i < 6; i++) {
-            u64 cur = b.pieces[i];
-            while (cur) {
-                int pos = lsb(cur);
-                eval += pst[i][pos] + PIECE_VALUES[i + 1];
-                cur &= cur - 1;
-            }
-        }
-
-        for (int i = 6; i < 12; i++) {
-            u64 cur = b.pieces[i];
-            while (cur) {
-                int pos = lsb(cur) ^ 56;
-                eval -= pst[i - 6][pos] + PIECE_VALUES[i - 5];
-                cur &= cur - 1;
-            }
-        }
-        // cout << "final eval : " << eval << endl;
-        // b.print_board();
-        return eval;
-    }
+    void order_moves(const board &b, std::vector<move> &moves);
+    std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
+    float base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
+    float base_eval(const board &b);
 };
+
+template <typename rulebook> void engine<rulebook>::order_moves(const board &b, std::vector<move> &moves) {
+    if (moves.empty())
+        return;
+    std::vector<float> score(moves.size());
+    COLOUR colour = moves[0].colour;
+    move_generator mg(b, colour);
+
+    for (int i = 0; i < moves.size(); i++) {
+        // capture moves are prioritised
+        if (moves[i].piece_captured) {
+            auto [end_piece_colour, end_piece] = b.get_piece(moves[i].end_location);
+            score[i] = 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(moves[i].piece)];
+        } else {
+            score[i] = 1;
+        }
+    }
+    std::vector<int> idx(moves.size());
+    for (int i = 0; i < moves.size(); i++)
+        idx[i] = i;
+        
+    std::sort(idx.begin(), idx.end(), [&](const int &i, const int &j) { return score[i] > score[j]; });
+
+    std::vector<move> temp;
+    for (int i = 0; i < moves.size(); i++)
+        temp.push_back(moves[idx[i]]);
+
+    for (int i = 0; i < moves.size(); i++)
+        moves[i] = temp[i];
+}
+
+// minimax with alpha beta pruning upto specified depth
+// returns current evaluation of the position, and the best move.
+template <typename rulebook>
+std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &turn, int depth, float alpha,
+                                                 float beta) {
+    if (turn == COLOUR::NONE)
+        return {move(), 0.0f};
+
+    std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
+
+    // if no moves
+    if (all_moves.empty()) {
+        move_generator checker(b, turn);
+
+        // checkmate
+        if (checker.is_in_check()) {
+            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
+                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)];
+            return {move(), mate_eval};
+        }
+        // stalemate
+        else {
+            return {move(), 0.0f};
+        }
+    }
+
+    std::pair<move, float> best_move = (turn == COLOUR::WHITE) ? std::pair{move(), -INF} : std::pair{move(), INF};
+    order_moves(b, all_moves);
+
+    for (const move &mv : all_moves) {
+        board next_board = b;
+        COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+
+        // simulate current move
+        if (mv.castle_kside) {
+            rules.castle_kside(next_board, turn);
+        } else if (mv.castle_qside) {
+            rules.castle_qside(next_board, turn);
+        } else {
+            next_board.apply_move(mv);
+        }
+        rules.update_flags(next_board, mv);
+        // cout << "depth : " << depth << " ";
+        // mv.print_move();
+
+        float cur_evaluation = 0.0f;
+        if (depth == 1)
+            cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta);
+        else {
+            auto temp = minimax(next_board, next_turn, depth - 1, alpha, beta);
+            cur_evaluation = temp.second;
+        }
+
+        if (turn == COLOUR::WHITE && cur_evaluation > best_move.second) {
+            best_move = {mv, cur_evaluation};
+            alpha = std::max(alpha, cur_evaluation);
+        } else if (turn == COLOUR::BLACK && cur_evaluation < best_move.second) {
+            best_move = {mv, cur_evaluation};
+            beta = std::min(beta, cur_evaluation);
+        }
+        if (beta <= alpha)
+            break;
+    }
+    return best_move;
+}
+
+template <typename rulebook>
+float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta) {
+    if (turn == COLOUR::NONE)
+        return 0;
+    std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
+
+    // if no moves
+    if (all_moves.empty()) {
+        move_generator checker(b, turn);
+        // checkmate
+        if (checker.is_in_check()) {
+            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
+                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)];
+            return mate_eval;
+        }
+        // stalemate
+        else {
+            return 0.0f;
+        }
+    }
+
+    // It may be that all the capture moves in the current position are suboptimal.
+    // So, must compare with the base_eval of the current position.
+    float best_eval = base_eval(b);
+    if (turn == COLOUR::WHITE)
+        alpha = std::max(alpha, best_eval);
+    else
+        beta = std::min(beta, best_eval);
+
+    bool no_capture_moves = true;
+    order_moves(b, all_moves);
+
+    for (const move &mv : all_moves) {
+        if (!mv.piece_captured)
+            continue;
+        no_capture_moves = false;
+        board next_board = b;
+        COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+        if (mv.castle_kside) {
+            rules.castle_kside(next_board, turn);
+        } else if (mv.castle_qside) {
+            rules.castle_qside(next_board, turn);
+        } else {
+            next_board.apply_move(mv);
+        }
+
+        // cout << "depth : " << depth << " ";
+        // mv.print_move();
+
+        float cur_evaluation = base_case_minimax(next_board, next_turn, depth - 1, alpha, beta);
+        if (turn == COLOUR::WHITE && cur_evaluation > best_eval) {
+            best_eval = cur_evaluation;
+            alpha = std::max(alpha, cur_evaluation);
+        } else if (turn == COLOUR::BLACK && cur_evaluation < best_eval) {
+            best_eval = cur_evaluation;
+            beta = std::min(beta, cur_evaluation);
+        }
+        if (beta <= alpha)
+            break;
+    }
+    if (no_capture_moves)
+        return base_eval(b);
+    else
+        return best_eval;
+}
+
+template <typename rulebook> float engine<rulebook>::base_eval(const board &b) {
+    float eval = 0;
+    for (int i = 0; i < 6; i++) {
+        u64 cur = b.pieces[i];
+        while (cur) {
+            int pos = lsb(cur);
+            eval += pst[i][pos] + PIECE_VALUES[i + 1];
+            cur &= cur - 1;
+        }
+    }
+
+    for (int i = 6; i < 12; i++) {
+        u64 cur = b.pieces[i];
+        while (cur) {
+            int pos = lsb(cur) ^ 56;
+            eval -= pst[i - 6][pos] + PIECE_VALUES[i - 5];
+            cur &= cur - 1;
+        }
+    }
+    // cout << "final eval : " << eval << endl;
+    // b.print_board();
+    return eval;
+}
