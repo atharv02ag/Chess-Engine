@@ -59,7 +59,7 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
 
     // priority ordering: promotions > captures > others
     for (int i = 0; i < moves.size(); i++) {
-        if(moves[i].promotion_piece != PIECE::EMPTY) {
+        if (moves[i].promotion_piece != PIECE::EMPTY) {
             score[i] += PIECE_VALUES[static_cast<int>(moves[i].promotion_piece)];
             continue;
         }
@@ -74,7 +74,7 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
     std::vector<int> idx(moves.size());
     for (int i = 0; i < moves.size(); i++)
         idx[i] = i;
-        
+
     std::sort(idx.begin(), idx.end(), [&](const int &i, const int &j) { return score[i] > score[j]; });
 
     std::vector<move> temp;
@@ -196,6 +196,7 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
         } else {
             next_board.apply_move(mv);
         }
+        rules.update_flags(next_board, mv);
 
         // cout << "depth : " << depth << " ";
         // mv.print_move();

@@ -80,7 +80,7 @@ class std_rules : public rules<std_rules> {
             u64 king_landing = (1ULL << 6);
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)) &&
                 !(chess_board.all_white_pieces() & rook_landing) && !(chess_board.all_white_pieces() & king_landing) &&
-                !helper.is_sqr_attacked(rook_landing) && !helper.is_sqr_attacked(king_landing)) {
+                !helper.is_sqr_attacked(rook_landing) && !helper.is_sqr_attacked(king_landing) && !helper.is_in_check()) {
 
                 candidates.push_back(move(PIECE::KING, COLOUR::WHITE, true, false));
             }
@@ -90,7 +90,7 @@ class std_rules : public rules<std_rules> {
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE)) &&
                 !(chess_board.all_white_pieces() & rook_landing) && !(chess_board.all_white_pieces() & king_landing) &&
                 !(chess_board.all_white_pieces() & other_square) && !helper.is_sqr_attacked(rook_landing) &&
-                !helper.is_sqr_attacked(king_landing)) {
+                !helper.is_sqr_attacked(king_landing) && !helper.is_in_check()) {
 
                 candidates.push_back(move(PIECE::KING, COLOUR::WHITE, false, true));
             }
