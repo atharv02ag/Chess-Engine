@@ -24,7 +24,8 @@ template <typename rulebook> game<rulebook>::game(const std::string &fen) {
 
 template <typename rulebook> void game<rulebook>::show_board() { chess_board.print_board(); }
 
-// Parses moves in format "e2e4", "g1f3", "k" and "q" (for black castling), "K" and "Q" (for white castling)
+// Parses moves in format "e2e4", "g1f3", "a7a8q" (for promotion),
+// k" and "q" (for black castling), "K" and "Q" (for white castling)
 template <typename rulebook> move game<rulebook>::parse_move(const std::string &move_str) {
     if (move_str[0] == 'k') {
         return move(PIECE::KING, COLOUR::BLACK, true, false);
@@ -46,6 +47,32 @@ template <typename rulebook> move game<rulebook>::parse_move(const std::string &
 
     if (start_piece_colour != COLOUR::NONE && start_piece_type != PIECE::EMPTY) {
         auto [end_piece_colour, end_piece_type] = chess_board.get_piece(end_location);
+
+        // promotion move detection
+        if (move_str.length() == 5) {
+            PIECE promo_piece = PIECE::EMPTY;
+            switch (move_str[4]) {
+            case 'q':
+                promo_piece = PIECE::QUEEN;
+                break;
+            case 'r':
+                promo_piece = PIECE::ROOK;
+                break;
+            case 'b':
+                promo_piece = PIECE::BISHOP;
+                break;
+            case 'n':
+                promo_piece = PIECE::KNIGHT;
+                break;
+            default:
+                promo_piece = PIECE::EMPTY;
+                break;
+            }
+            if (promo_piece != PIECE::EMPTY)
+                return move(start_piece_type, start_piece_colour, start_location, end_location, promo_piece);
+            else
+                return move(PIECE::EMPTY, COLOUR::NONE, start_location, end_location);
+        }
 
         // enpass move detection
         if (start_piece_type == PIECE::PAWN && end_location == chess_board.enpass_capture_square)

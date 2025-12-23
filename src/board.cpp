@@ -85,7 +85,7 @@ void board::load_fen(const std::string &fen) {
     }
 
     turn = (side == "w") ? COLOUR::WHITE : COLOUR::BLACK;
-
+    flags = 0;
     if (castling.find('K') != std::string::npos)
         flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
     if (castling.find('Q') != std::string::npos)
@@ -122,7 +122,7 @@ u64 board::all_black_pieces() const {
 
 u64 board::all_pieces() const { return all_white_pieces() ^ all_black_pieces(); }
 
-bool board::set_piece(u64 location, PIECE piece, COLOUR colour) {
+bool board::set_piece(const u64 &location, const PIECE &piece, const COLOUR &colour) {
     if (!location || pop_ct(location) > 1) {
         cout << "board::set_piece : invalid location : " << location
              << " colour : " << colour_names[static_cast<int>(colour)] << endl;
@@ -142,7 +142,7 @@ bool board::set_piece(u64 location, PIECE piece, COLOUR colour) {
     return true;
 }
 
-std::pair<COLOUR, PIECE> board::get_piece(u64 location) const {
+std::pair<COLOUR, PIECE> board::get_piece(const u64 &location) const {
 
     if (!location || pop_ct(location) > 1) {
         cout << "board::get_piece : invalid location" << endl;
@@ -165,9 +165,9 @@ std::pair<COLOUR, PIECE> board::get_piece(u64 location) const {
 }
 
 // NOTE : Castling is handled by 'rules' class, called in games::make_move
-void board::apply_move(const move &move_to_make) {
-    // ASSUMPTION : the colour and piece returned by get_piece() is the same corresponding to move_to_make
+// ASSUMPTION : the colour and piece returned by get_piece() is the same corresponding to move_to_make
 
+void board::apply_move(const move &move_to_make) {
     if (move_to_make.colour == COLOUR::NONE || move_to_make.piece == PIECE::EMPTY) {
         cout << "board::apply_move : invalid move" << endl;
         return;
@@ -179,6 +179,7 @@ void board::apply_move(const move &move_to_make) {
         print_board();
     }
 
+    // enpassant move captures the pawn behind the target square
     if (move_to_make.enpass) {
         if (move_to_make.colour == COLOUR::WHITE) {
             u64 captured_pawn_location = move_to_make.end_location >> 8;
@@ -191,7 +192,11 @@ void board::apply_move(const move &move_to_make) {
 
     set_piece(move_to_make.start_location, PIECE::EMPTY, COLOUR::NONE);
     set_piece(move_to_make.end_location, PIECE::EMPTY, COLOUR::NONE);
-    set_piece(move_to_make.end_location, move_to_make.piece, move_to_make.colour);
+    
+    if (move_to_make.promotion_piece != PIECE::EMPTY)
+        set_piece(move_to_make.end_location, move_to_make.promotion_piece, move_to_make.colour);
+    else
+        set_piece(move_to_make.end_location, move_to_make.piece, move_to_make.colour);
 }
 
 void board::print_board() const {

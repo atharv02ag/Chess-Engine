@@ -53,19 +53,24 @@ template <typename rulebook> class engine {
 template <typename rulebook> void engine<rulebook>::order_moves(const board &b, std::vector<move> &moves) {
     if (moves.empty())
         return;
-    std::vector<float> score(moves.size());
+    std::vector<float> score(moves.size(), 0);
     COLOUR colour = moves[0].colour;
     move_generator mg(b, colour);
 
+    // priority ordering: promotions > captures > others
     for (int i = 0; i < moves.size(); i++) {
-        // capture moves are prioritised
+        if(moves[i].promotion_piece != PIECE::EMPTY) {
+            score[i] += PIECE_VALUES[static_cast<int>(moves[i].promotion_piece)];
+            continue;
+        }
         if (moves[i].piece_captured) {
             auto [end_piece_colour, end_piece] = b.get_piece(moves[i].end_location);
-            score[i] = 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(moves[i].piece)];
+            score[i] += 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(moves[i].piece)];
         } else {
             score[i] = 1;
         }
     }
+
     std::vector<int> idx(moves.size());
     for (int i = 0; i < moves.size(); i++)
         idx[i] = i;

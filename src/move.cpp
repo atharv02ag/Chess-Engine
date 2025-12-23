@@ -16,11 +16,16 @@ void move::print_move() const {
     int end_col = lsb(end_location) % 8;
     if (piece_captured)
         cout << "CAPTURE, ";
-    if(enpass){
+    if (enpass) {
         cout << "ENPASSANT, ";
     }
     cout << "COLOUR : " << colour_names[static_cast<int>(colour)] << " PIECE : " << piece_names[static_cast<int>(piece)]
-         << " START : (" << start_row << "," << start_col << ") END : (" << end_row << "," << end_col << ")" << endl;
+         << " START : (" << start_row << "," << start_col << ") END : (" << end_row << "," << end_col << ")";
+
+    if (promotion_piece != PIECE::EMPTY)
+        cout << " PROMOTION to " << piece_names[static_cast<int>(promotion_piece)] << endl;
+    else
+        cout << endl;
 }
 
 bool move::operator==(const move &other) const {
@@ -328,8 +333,15 @@ std::vector<move> move_generator::get_pawn_moves() {
             u64 pawn = white_pawns ^ (white_pawns & (white_pawns - 1));
             int pawn_loc = lsb(pawn);
 
-            // promotion logic here
-            if (pawn_loc / 8 == 7) {
+            // pawn promotion
+            if (pawn_loc / 8 == 6) {
+                u64 single_step = pawn << 8;
+                if (!(single_step & current.all_pieces())) {
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::QUEEN));
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::ROOK));
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::BISHOP));
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::KNIGHT));
+                }
                 white_pawns &= white_pawns - 1;
                 continue;
             }
@@ -371,7 +383,14 @@ std::vector<move> move_generator::get_pawn_moves() {
             u64 pawn = black_pawns ^ (black_pawns & (black_pawns - 1));
             int pawn_loc = lsb(pawn);
 
-            if (pawn_loc / 8 == 0) {
+            if (pawn_loc / 8 == 1) {
+                u64 single_step = pawn >> 8;
+                if (!(single_step & current.all_pieces())) {
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::QUEEN));
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::ROOK));
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::BISHOP));
+                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::KNIGHT));
+                }
                 black_pawns &= black_pawns - 1;
                 continue;
             }

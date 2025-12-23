@@ -18,8 +18,8 @@ class board {
     u64 all_white_pieces() const;
     u64 all_black_pieces() const;
     u64 all_pieces() const;
-    bool set_piece(u64 location, PIECE piece, COLOUR colour);
-    std::pair<COLOUR, PIECE> get_piece(u64 location) const;
+    bool set_piece(const u64& location, const PIECE& piece, const COLOUR& colour);
+    std::pair<COLOUR, PIECE> get_piece(const u64& location) const;
     void apply_move(const move &move_to_make);
     void print_board() const;
 };

@@ -7,15 +7,17 @@ class move {
     COLOUR colour = COLOUR::NONE;
     u64 start_location = 0ULL;
     u64 end_location = 0ULL;
+    PIECE promotion_piece = PIECE::EMPTY;
     bool piece_captured = false;
     bool enpass = false;
     bool castle_kside = false;
     bool castle_qside = false;
-    bool pawn_promotion = false;
 
     move() = default;
     move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end)
         : piece(p), colour(c), start_location(start), end_location(end) {}
+    move(const PIECE& p, const COLOUR &c, const u64 &start, const u64 &end, const PIECE &prom_piece)
+        : piece(p), colour(c), start_location(start), end_location(end), promotion_piece(prom_piece) {}
     move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end, const bool &p_cap)
         : piece(p), colour(c), start_location(start), end_location(end), piece_captured(p_cap) {}
     move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end, const bool &p_cap, const bool &ep)

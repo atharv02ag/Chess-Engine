@@ -8,27 +8,51 @@
 
 // TODO : implement minimax board copy by reference - implement board.unmake(move)
 // TODO : implement pawn promotion, en passant
-// TODO : some errors in evaluation function. Check from fen = r1b1k1nB/1ppq3p/p1n2p2/8/4p3/P7/P1PPPPPP/1R1QKB1R w Kq - 1 11
+
+// test 1 = r5k1/1p3ppp/6q1/pPPp1b2/3Nr3/4P2P/P1Q2PPK/1R3R2 b - - 4 20 - PASS
+// test 2 = 5r1k/4r2p/2qpB3/B1p1bPP1/P3R1QP/1P6/6K1/8 b - - 0 39 - PASS
+// test 3 = 4r1k1/1p3pp1/p2Qp3/3p1qBp/3P3P/PP6/2n2PP1/2R3K1 w - - 4 28 - PASS
+// test 4 = r3k2r/ppp2ppp/3p4/2b5/4P2q/2N2b1P/PPP1BP2/R1B1QRK1 b kq - 1 13 - PASS
+
 
 int main() {
-    game<std_rules> g ("rnbqkbnr/ppp1pppp/8/8/2PpPP2/8/PP1P2PP/RNBQKBNR b KQkq c3 0 3");
     // freopen("log.txt", "w", stdout);
+    game<std_rules> g ("4k2r/Pp6/1P1p1K1b/2pP4/2P4P/8/8/R7 b - - 0 1");
+    // auto all = g.rules.get_all_legal_moves(g.chess_board, g.turn);
+    // for(auto a : all){
+    //     a.print_move();
+    // }
+    // cout << g.chess_board.flags << endl;
     engine<std_rules> e;
     int depth = 4;
     g.show_board();
-    cout << g.chess_board.enpass_capture_square << endl;
-
-    //  move_generator mg(g.chess_board,g.turn);
-    auto all = e.rules.get_all_legal_moves(g.chess_board, g.turn);
-    // auto all = mg.get_all_generic_moves();
-    for(auto m : all){
-        m.print_move();
-    }
-
-    g.make_move(g.parse_move("d4c3"));
+    auto [m, em] = e.minimax(g.chess_board, g.turn, depth, -INF, INF);
+    m.print_move();
+    cout << "eval : " << em << endl;
+    g.make_move(m);
     g.show_board();
-    // auto [w, ew] = e.minimax(g.chess_board, COLOUR::WHITE, depth, -INF, INF);
-    // w.print_move();
+    g.make_move(g.parse_move("h4g5"));
+    g.show_board();
+    auto [m1, em1] = e.minimax(g.chess_board, g.turn, depth, -INF, INF);
+    m1.print_move();
+    cout << "eval : " << em1 << endl;
+    g.make_move(m1);
+    g.show_board();
+    g.make_move(g.parse_move("a7a8q"));
+    g.show_board();
+    auto [m2, em2] = e.minimax(g.chess_board, g.turn, depth, -INF, INF);
+    m2.print_move();
+    cout << "eval : " << em2 << endl;
+    g.make_move(m2);
+    g.show_board();
+
+    // g.make_move(g.parse_move("f5e6"));
+    // g.show_board();
+    // auto [m2, em2] = e.minimax(g.chess_board, g.turn, depth, -INF, INF);
+    // m2.print_move();
+    // cout << "eval : " << em2 << endl;
+    // g.make_move(m2);
+    // g.show_board();
     // for(int i = 0; i<20; i++){
     //     cout << "iter : " << i << endl;
     //     g.show_board();
