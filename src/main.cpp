@@ -18,7 +18,7 @@ int main() {
     // freopen("log.txt", "w", stdout);
     game<std_rules> g;
     engine<std_rules> e;
-    int depth = 6;
+    int depth = 5;
     g.show_board();
     for(int i = 0; i<50; i++){
         std::string enemy_move;
@@ -36,20 +36,6 @@ int main() {
         g.make_move(m);
         g.show_board();
     }
-    // g.show_board();
-    // g.make_move(g.parse_move("g2g4"));
-    // cout << g.chess_board.enpass_capture_square << endl;
-    // g.show_board();
-    // g.make_move(g.parse_move("c8g4"));
-    // cout << g.chess_board.enpass_capture_square << endl;
-    // g.show_board();
-    // g.make_move(g.parse_move("f3g4"));
-    // cout << g.chess_board.enpass_capture_square << endl;
-    // g.show_board();
-    // auto all = g.rules.get_all_legal_moves(g.chess_board, g.turn);
-    // for (const auto &m : all) {
-    //     m.print_move();
-    // }
 
     return 0;
 }
