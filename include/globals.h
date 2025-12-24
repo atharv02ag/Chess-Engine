@@ -22,11 +22,23 @@ enum class PIECE { EMPTY, PAWN, ROOK, KNIGHT, BISHOP, KING, QUEEN };
 
 enum class FLAGS : u32 {
     // castling rights, set to 0 if king or any rooks have moved, or already castled. Default 1.
+    NONE = 0,
     CASTLE_KSIDE_WHITE = 1 << 0,
     CASTLE_QSIDE_WHITE = 1 << 1,
     CASTLE_KSIDE_BLACK = 1 << 2,
     CASTLE_QSIDE_BLACK = 1 << 3,
+};
 
+enum class MOVE_FLAGS : u32 {
+    NONE = 0,
+    CASTLE_KSIDE = 1 << 0,
+    CASTLE_QSIDE = 1 << 1,
+    CAPTURE = 1 << 2,
+    ENPASS = 1 << 3,
+    PROMOTE_QUEEN = 1 << 4,
+    PROMOTE_ROOK = 1 << 5,
+    PROMOTE_BISHOP = 1 << 6,
+    PROMOTE_KNIGHT = 1 << 7,
 };
 
 inline int lsb(const u64 &num) { return __builtin_ctzll(num); }
@@ -43,6 +55,6 @@ inline constexpr std::array<std::pair<int, int>, 8> king_offsets = {
     std::pair{0, 1}, std::pair{0, -1}, std::pair{1, 0},  std::pair{-1, 0}};
 
 // make sure colour != NONE and piece != EMPTY
-inline int get_piece_idx(const COLOUR &colour, const PIECE &piece) {
+inline constexpr int get_piece_idx(const COLOUR &colour, const PIECE &piece) {
     return static_cast<int>(colour) * 6 + (static_cast<int>(piece) - 1);
 }

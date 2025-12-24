@@ -59,11 +59,11 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
 
     // priority ordering: promotions > captures > others
     for (int i = 0; i < moves.size(); i++) {
-        if (moves[i].promotion_piece != PIECE::EMPTY) {
-            score[i] += PIECE_VALUES[static_cast<int>(moves[i].promotion_piece)];
+        if (moves[i].promotion_piece() != PIECE::EMPTY) {
+            score[i] += PIECE_VALUES[static_cast<int>(moves[i].promotion_piece())];
             continue;
         }
-        if (moves[i].piece_captured) {
+        if (moves[i].piece_captured()) {
             auto [end_piece_colour, end_piece] = b.get_piece(moves[i].end_location);
             score[i] += 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(moves[i].piece)];
         } else {
@@ -119,9 +119,9 @@ std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &t
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
 
         // simulate current move
-        if (mv.castle_kside) {
+        if (mv.castle_kside()) {
             rules.castle_kside(next_board, turn);
-        } else if (mv.castle_qside) {
+        } else if (mv.castle_qside()) {
             rules.castle_qside(next_board, turn);
         } else {
             next_board.apply_move(mv);
@@ -184,14 +184,14 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
     order_moves(b, all_moves);
 
     for (const move &mv : all_moves) {
-        if (!mv.piece_captured)
+        if (!mv.piece_captured())
             continue;
         no_capture_moves = false;
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-        if (mv.castle_kside) {
+        if (mv.castle_kside()) {
             rules.castle_kside(next_board, turn);
-        } else if (mv.castle_qside) {
+        } else if (mv.castle_qside()) {
             rules.castle_qside(next_board, turn);
         } else {
             next_board.apply_move(mv);

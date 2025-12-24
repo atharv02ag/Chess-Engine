@@ -40,6 +40,7 @@ template <typename rulebook> move game<rulebook>::parse_move(const std::string &
     int start_row = move_str[1] - '1';
     int end_col = move_str[2] - 'a';
     int end_row = move_str[3] - '1';
+
     u64 start_location = 1ULL << (start_row * 8) << start_col;
     u64 end_location = 1ULL << (end_row * 8) << end_col;
 
@@ -103,12 +104,12 @@ template <typename rulebook> bool game<rulebook>::make_move(const move &move_to_
     }
     if (!found)
         return false;
-    if (move_to_make.castle_kside) {
+    if (move_to_make.castle_kside()) {
         rules.castle_kside(chess_board, move_to_make.colour);
         turn = chess_board.turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
         return true;
     }
-    if (move_to_make.castle_qside) {
+    if (move_to_make.castle_qside()) {
         rules.castle_qside(chess_board, move_to_make.colour);
         turn = chess_board.turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
         return true;

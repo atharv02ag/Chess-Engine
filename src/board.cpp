@@ -158,9 +158,9 @@ std::pair<COLOUR, PIECE> board::get_piece(const u64 &location) const {
             else
                 colour = COLOUR::BLACK;
             piece = static_cast<PIECE>(i % 6 + 1);
+            break;
         }
     }
-
     return std::pair{colour, piece};
 }
 
@@ -180,7 +180,7 @@ void board::apply_move(const move &move_to_make) {
     }
 
     // enpassant move captures the pawn behind the target square
-    if (move_to_make.enpass) {
+    if (move_to_make.enpass()) {
         if (move_to_make.colour == COLOUR::WHITE) {
             u64 captured_pawn_location = move_to_make.end_location >> 8;
             set_piece(captured_pawn_location, PIECE::EMPTY, COLOUR::NONE);
@@ -193,8 +193,8 @@ void board::apply_move(const move &move_to_make) {
     set_piece(move_to_make.start_location, PIECE::EMPTY, COLOUR::NONE);
     set_piece(move_to_make.end_location, PIECE::EMPTY, COLOUR::NONE);
     
-    if (move_to_make.promotion_piece != PIECE::EMPTY)
-        set_piece(move_to_make.end_location, move_to_make.promotion_piece, move_to_make.colour);
+    if (move_to_make.promotion_piece() != PIECE::EMPTY)
+        set_piece(move_to_make.end_location, move_to_make.promotion_piece(), move_to_make.colour);
     else
         set_piece(move_to_make.end_location, move_to_make.piece, move_to_make.colour);
 }
