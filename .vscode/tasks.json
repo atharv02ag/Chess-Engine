@@ -10,6 +10,9 @@
                 "${fileDirname}\\board.cpp",
                 "${fileDirname}\\main.cpp",
                 "${fileDirname}\\move.cpp",
+                "-O3",
+                "-march=native",
+                "-flto",
                 "-o",
                 "${fileDirname}\\..\\${fileBasenameNoExtension}.exe"
             ],

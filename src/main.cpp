@@ -18,7 +18,7 @@ int main() {
     // freopen("log.txt", "w", stdout);
     game<std_rules> g;
     engine<std_rules> e;
-    int depth = 5;
+    int depth = 6;
     g.show_board();
     for(int i = 0; i<50; i++){
         std::string enemy_move;
