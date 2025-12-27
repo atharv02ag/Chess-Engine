@@ -1,15 +1,36 @@
 #include "../include/board.h"
+#include "../include/zobrist.h"
 
 board::board() {
     for (int i = 0; i < 12; i++)
         pieces[i] = 0ULL;
     turn = COLOUR::WHITE;
     enpass_capture_square = 0ULL;
+    zhash = 0ULL;
     flags = 0;
     flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
     flags |= static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
     flags |= static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
     flags |= static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
+}
+
+void board::init_hash(){
+    // zhash = (turn == COLOUR::WHITE) ? zobrist::rv_colour : 0ULL;
+    for(int i = 0; i<12; i++){
+        for(int j = 0; j<64; j++){
+            u64 loc = 1ULL << j;
+            if(pieces[i] & loc) zhash ^= zobrist::rv_pieces[i][j];
+        }
+    }
+    u64 cur = flags;
+    while(cur){
+        zhash ^= zobrist::rv_flags[lsb(cur)];
+        cur &= cur-1;
+    }
+    if(enpass_capture_square){
+        int enpass_idx = lsb(enpass_capture_square)%8 + 8 * (lsb(enpass_capture_square)/8 <= 2);
+        zhash ^= zobrist::rv_enpass[enpass_idx];
+    }
 }
 
 void board::load_fen(const std::string &fen) {
@@ -104,6 +125,7 @@ void board::load_fen(const std::string &fen) {
         enpass_capture_square = 0ULL;
     }
     // halmove and fullmove ma chudaye
+    init_hash();
 }
 
 u64 board::all_white_pieces() const {
@@ -132,12 +154,16 @@ bool board::set_piece(const u64 &location, const PIECE &piece, const COLOUR &col
 
     if (piece == PIECE::EMPTY) {
         for (int i = 0; i < 12; i++) {
+            if(pieces[i] & location){
+                zhash ^= zobrist::rv_pieces[i][lsb(location)];
+            }
             pieces[i] &= ~location;
         }
         return true;
     } else {
         int piece_idx = get_piece_idx(colour, piece);
         pieces[piece_idx] |= location;
+        zhash ^= zobrist::rv_pieces[piece_idx][lsb(location)];
     }
     return true;
 }

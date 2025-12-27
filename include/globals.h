@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -10,11 +11,12 @@
 
 using u64 = uint64_t;
 using u32 = uint32_t;
+using std::cin;
 using std::cout;
 using std::endl;
-using std::cin;
 
-inline constexpr float INF = 1000000.0f;
+inline constexpr float INF = 100000000.0f;
+inline constexpr int TT_SIZE = 1 << 23;
 
 enum class COLOUR { WHITE, BLACK, NONE };
 
@@ -40,6 +42,8 @@ enum class MOVE_FLAGS : u32 {
     PROMOTE_BISHOP = 1 << 6,
     PROMOTE_KNIGHT = 1 << 7,
 };
+
+enum class TT_FLAG { EXACT, LOWER_BOUND, UPPER_BOUND };
 
 inline int lsb(const u64 &num) { return __builtin_ctzll(num); }
 inline int msb(const u64 &num) { return 63 - __builtin_clzll(num); }

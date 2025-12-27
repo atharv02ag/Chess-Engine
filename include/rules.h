@@ -1,6 +1,7 @@
 #pragma once
 #include "board.h"
 #include "move_generator.h"
+#include "zobrist.h"
 
 // CRTP implementation
 
@@ -44,11 +45,23 @@ class std_rules : public rules<std_rules> {
         if (turn == COLOUR::WHITE) {
             chess_board.apply_move(move(PIECE::KING, COLOUR::WHITE, (1ULL << 4), (1ULL << 6)));
             chess_board.apply_move(move(PIECE::ROOK, COLOUR::WHITE, (1ULL << 7), (1ULL << 5)));
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE))];
+            }
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))];
+            }
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
         } else {
             chess_board.apply_move(move(PIECE::KING, COLOUR::BLACK, (1ULL << (8 * 7) << 4), (1ULL << (8 * 7) << 6)));
             chess_board.apply_move(move(PIECE::ROOK, COLOUR::BLACK, (1ULL << (8 * 7) << 7), (1ULL << (8 * 7) << 5)));
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK))];
+            }
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))];
+            }
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
         }
@@ -60,11 +73,23 @@ class std_rules : public rules<std_rules> {
         if (turn == COLOUR::WHITE) {
             chess_board.apply_move(move(PIECE::KING, COLOUR::WHITE, (1ULL << 4), (1ULL << 2)));
             chess_board.apply_move(move(PIECE::ROOK, COLOUR::WHITE, 1ULL, (1ULL << 3)));
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE))];
+            }
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))];
+            }
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
         } else {
             chess_board.apply_move(move(PIECE::KING, COLOUR::BLACK, (1ULL << (8 * 7) << 4), (1ULL << (8 * 7) << 2)));
             chess_board.apply_move(move(PIECE::ROOK, COLOUR::BLACK, (1ULL << (8 * 7)), (1ULL << (8 * 7) << 3)));
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK))];
+            }
+            if(chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK)){
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))];
+            }
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
             chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
         }
@@ -144,36 +169,48 @@ class std_rules : public rules<std_rules> {
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)) && move_made.piece == PIECE::ROOK &&
                 move_made.start_location == (1ULL << 7)) {
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE))];
             }
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE)) && move_made.piece == PIECE::ROOK &&
                 move_made.start_location == 1ULL) {
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))];
             }
             if (((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)) ||
                  (chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))) &&
                 move_made.piece == PIECE::KING) {
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE))];
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))];
             }
         } else {
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK)) && move_made.piece == PIECE::ROOK &&
                 move_made.start_location == (1ULL << (8 * 7) << 7)) {
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK))];
             }
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK)) && move_made.piece == PIECE::ROOK &&
                 move_made.start_location == (1ULL << (8 * 7))) {
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))];
             }
             if (((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK)) ||
                  (chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))) &&
                 move_made.piece == PIECE::KING) {
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
                 chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK))];
+                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))];
             }
         }
     }
 
     void update_enpass_square(board &chess_board, const move &move_made) {
+        if(chess_board.enpass_capture_square){
+            int enpass_idx = lsb(chess_board.enpass_capture_square)%8 + 8 * (lsb(chess_board.enpass_capture_square)/8 <= 2);
+            chess_board.zhash ^= zobrist::rv_enpass[enpass_idx];
+        }
         if(move_made.colour == COLOUR::NONE || move_made.piece != PIECE::PAWN){
             chess_board.enpass_capture_square = 0ULL;
             return;
@@ -181,12 +218,16 @@ class std_rules : public rules<std_rules> {
         if(move_made.colour == COLOUR::WHITE){
             if(lsb(move_made.start_location)/8 == 1 && lsb(move_made.end_location)/8 == 3){
                 chess_board.enpass_capture_square = move_made.start_location << 8;
+                int enpass_idx = lsb(chess_board.enpass_capture_square)%8 + 8 * (lsb(chess_board.enpass_capture_square)/8 <= 2);
+                chess_board.zhash ^= zobrist::rv_enpass[enpass_idx];
                 return;
             }
         }
         else{
             if(lsb(move_made.start_location)/8 == 6 && lsb(move_made.end_location)/8 == 4){
                 chess_board.enpass_capture_square = move_made.start_location >> 8;
+                int enpass_idx = lsb(chess_board.enpass_capture_square)%8 + 8 * (lsb(chess_board.enpass_capture_square)/8 <= 2);
+                chess_board.zhash ^= zobrist::rv_enpass[enpass_idx];
                 return;
             }
         }

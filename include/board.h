@@ -9,11 +9,13 @@ class board {
     u32 flags;
     u64 enpass_capture_square;
     COLOUR turn;
+    u64 zhash;
 
     board();
     board(const board &b) = default;
     board(board &&b) noexcept = default;
     board &operator=(const board &b) = default;
+    void init_hash();
     void load_fen(const std::string &fen);
     u64 all_white_pieces() const;
     u64 all_black_pieces() const;

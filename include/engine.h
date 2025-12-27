@@ -4,6 +4,7 @@
 #include "../include/move.h"
 #include "../include/move_generator.h"
 #include "../include/rules.h"
+#include "../include/tt.h"
 
 constexpr std::array<float, 7> PIECE_VALUES = {0, 10, 50, 30, 30, 500, 90};
 
@@ -40,12 +41,43 @@ constexpr std::array<float, 64> king_mg_st = {2,  3,  1,  0,  0,  1,  3,  2,  2,
 
 constexpr std::array<std::array<float, 64>, 6> pst = {pawn_st, rook_st, knight_st, bishop_st, king_mg_st, queen_st};
 
+/*
+MINI-MAX SEARCH : Suppose currently, we are processing white's possible moves. Then among all the subtrees of
+computation (ie. depth-1 where we look at black's possible moves) emerging from those possibilities, we will choose that
+move leading to the highest (most +ve) eval. Similarly if we are currently processing black's possible moves, we will
+choose that move leading to the least (most -ve) eval.
+
+ALPHA BETA PRUNING : If we are processing white's possible moves, then alpha = highest eval we are getting from a move
+evaluated so far. Similarly, if we are processing black's possible moves, then beta = lowest eval we are getting.
+Therefore, the white player only updates alpha and the black player only updates beta, but both are passed down to
+depth-1 as arguments.
+
+Suppose we have processed moves w1, w2 .. wi-1 of white, and are now evaluating wi by checking black's
+responses to it, ie. called minimax(depth-1, alpha, beta). If, say, after evaluating move bj, we get beta <= alpha
+then clearly the parent (white) will never wish to play wi, because if they do, black will play bj and lead to a
+position with eval = beta, when in fact they can play the best move among {w1,w2...wi-1} to get an eval = alpha.
+Hence, we 'prune' the branch evaluating wi and move on to wi+1, without having to evaluate bj+1, bj+2.. etc.
+Similarly, if while processing white moves, we get beta <= alpha, then we can conclude that the parent (black) will
+never play into branch of computation. Hence, for given any position we can say that alpha <= eval(pos) <= beta and at
+each node we try to tighten the window, ie. maximise alpha and minimise beta.
+
+NODE CLASSIFICATION :-
+PV (principal variation) NODE : alpha <= eval(node) <= beta, it's value is the exact eval of the position.
+CUT NODE (fail hight) : beta <= eval(node), we prune this node from the search. To gauge eval(node), atleast one child
+of the node must be searched. 
+ALL NODE (fail low) : eval(node) <= alpha, all moves from this node should be evaluated to arrive at this conclusion.
+*/
+
 template <typename rulebook> class engine {
   public:
     rulebook rules;
+    tt table;
+    int nodes_seen = 0;
+    int tt_hits = 0;
 
     void order_moves(const board &b, std::vector<move> &moves);
     std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
+    std::pair<move, float> minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
     float base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
     float base_eval(const board &b);
 };
@@ -88,6 +120,110 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
 // minimax with alpha beta pruning upto specified depth
 // returns current evaluation of the position, and the best move.
 template <typename rulebook>
+std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha,
+                                                 float beta) {
+    if (turn == COLOUR::NONE)
+        return {move(), 0.0f};
+
+    nodes_seen++;
+    float alpha_orig = alpha;
+    float beta_orig = beta;
+
+    tt_entry entry = table.probe(b.zhash);
+    if(entry.zkey == b.zhash && entry.depth >= depth){
+        tt_hits++;
+        //cout << "TT TABLE HIT : ";
+        switch(entry.node_type){
+            case TT_FLAG::EXACT:
+                //cout << "EXACT" << endl;
+                return std::pair{entry.best_move, entry.eval};
+                break;
+            case TT_FLAG::LOWER_BOUND:
+                //cout << "LOWER BOUND" << endl;
+                alpha = std::max(alpha, entry.eval);
+                break;
+            case TT_FLAG::UPPER_BOUND:
+                //cout << "UPPER BOUND" << endl;
+                beta = std::min(beta, entry.eval);
+                break;
+            default: break;
+        }
+
+        if(alpha >= beta){
+            return {entry.best_move, entry.eval};
+        }
+    }
+
+    std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
+
+    // if no moves
+    if (all_moves.empty()) {
+        move_generator checker(b, turn);
+
+        // checkmate
+        if (checker.is_in_check()) {
+            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
+                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)];
+            return {move(), mate_eval};
+        }
+        // stalemate
+        else {
+            return {move(), 0.0f};
+        }
+    }
+
+    std::pair<move, float> best_move = (turn == COLOUR::WHITE) ? std::pair{move(), -INF} : std::pair{move(), INF};
+    order_moves(b, all_moves);
+
+    for (const move &mv : all_moves) {
+        board next_board = b;
+        COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+        next_board.zhash = (turn == COLOUR::WHITE) ? next_board.zhash : next_board.zhash ^ zobrist::rv_colour;
+
+        // simulate current move
+        if (mv.castle_kside()) {
+            rules.castle_kside(next_board, turn);
+        } else if (mv.castle_qside()) {
+            rules.castle_qside(next_board, turn);
+        } else {
+            next_board.apply_move(mv);
+        }
+        rules.update_flags(next_board, mv);
+        // cout << "depth : " << depth << " ";
+        // mv.print_move();
+
+        float cur_evaluation = 0.0f;
+        if (depth == 1)
+            cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta);
+        else {
+            auto temp = minimax_tt(next_board, next_turn, depth - 1, alpha, beta);
+            cur_evaluation = temp.second;
+        }
+
+        if (turn == COLOUR::WHITE && cur_evaluation > best_move.second) {
+            best_move = {mv, cur_evaluation};
+            alpha = std::max(alpha, cur_evaluation);
+        } else if (turn == COLOUR::BLACK && cur_evaluation < best_move.second) {
+            best_move = {mv, cur_evaluation};
+            beta = std::min(beta, cur_evaluation);
+        }
+        if (beta <= alpha)
+            break;
+    }
+    TT_FLAG flag = TT_FLAG::EXACT;
+    if(best_move.second >= beta_orig){
+        flag = TT_FLAG::LOWER_BOUND;
+    }
+    else if(best_move.second <= alpha_orig){
+        flag = TT_FLAG::UPPER_BOUND;
+    }
+    table.insert(tt_entry(b.zhash, depth, best_move.second, best_move.first, table.tt_generation, flag));
+    return best_move;
+}
+
+// minimax with alpha beta pruning upto specified depth
+// returns current evaluation of the position, and the best move.
+template <typename rulebook>
 std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &turn, int depth, float alpha,
                                                  float beta) {
     if (turn == COLOUR::NONE)
@@ -117,6 +253,7 @@ std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &t
     for (const move &mv : all_moves) {
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+        next_board.zhash = (turn == COLOUR::WHITE) ? next_board.zhash : next_board.zhash ^ zobrist::rv_colour;
 
         // simulate current move
         if (mv.castle_kside()) {
@@ -189,6 +326,8 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
         no_capture_moves = false;
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+        next_board.zhash = (turn == COLOUR::WHITE) ? next_board.zhash : next_board.zhash ^ zobrist::rv_colour;
+
         if (mv.castle_kside()) {
             rules.castle_kside(next_board, turn);
         } else if (mv.castle_qside()) {
