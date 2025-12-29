@@ -1,9 +1,10 @@
 #include "../include/move.h"
 #include "../include/move_generator.h"
 
-move::move(const PIECE& p, const COLOUR& c, const u64 &start, const u64 &end) : piece(p), colour(c), start_location(start), end_location(end) {}
+move::move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end)
+    : piece(p), colour(c), start_location(start), end_location(end) {}
 
-move::move(const PIECE& p, const COLOUR& c, const u64 &start, const u64 &end, const PIECE &prom_piece)
+move::move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end, const PIECE &prom_piece)
     : piece(p), colour(c), start_location(start), end_location(end) {
 
     move_flags = 0;
@@ -25,6 +26,30 @@ move::move(const PIECE& p, const COLOUR& c, const u64 &start, const u64 &end, co
     }
 }
 
+move::move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end, const bool &p_cap,
+           const PIECE &prom_piece)
+    : piece(p), colour(c), start_location(start), end_location(end) {
+    move_flags = 0;
+    switch (prom_piece) {
+    case PIECE::QUEEN:
+        move_flags |= static_cast<u32>(MOVE_FLAGS::PROMOTE_QUEEN);
+        break;
+    case PIECE::ROOK:
+        move_flags |= static_cast<u32>(MOVE_FLAGS::PROMOTE_ROOK);
+        break;
+    case PIECE::BISHOP:
+        move_flags |= static_cast<u32>(MOVE_FLAGS::PROMOTE_BISHOP);
+        break;
+    case PIECE::KNIGHT:
+        move_flags |= static_cast<u32>(MOVE_FLAGS::PROMOTE_KNIGHT);
+        break;
+    default:
+        break;
+    }
+    if (p_cap)
+        move_flags |= static_cast<u32>(MOVE_FLAGS::CAPTURE);
+}
+
 move::move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end, const bool &p_cap)
     : piece(p), colour(c), start_location(start), end_location(end) {
 
@@ -33,7 +58,7 @@ move::move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end, co
         move_flags |= static_cast<u32>(MOVE_FLAGS::CAPTURE);
 }
 
-move::move(const PIECE& p, const COLOUR& c, const u64 &start, const u64 &end, const bool &p_cap, const bool &ep)
+move::move(const PIECE &p, const COLOUR &c, const u64 &start, const u64 &end, const bool &p_cap, const bool &ep)
     : piece(p), colour(c), start_location(start), end_location(end) {
 
     move_flags = 0;
@@ -47,8 +72,7 @@ move::move(const PIECE& p, const COLOUR& c, const u64 &start, const u64 &end, co
         move_flags |= static_cast<u32>(MOVE_FLAGS::ENPASS);
 }
 
-move::move(const PIECE& p, const COLOUR& c, const bool &castle_k, const bool &castle_q)
-    : piece(p), colour(c) {
+move::move(const PIECE &p, const COLOUR &c, const bool &castle_k, const bool &castle_q) : piece(p), colour(c) {
 
     move_flags = 0;
     if (castle_k && castle_q) {
@@ -82,7 +106,7 @@ PIECE move::promotion_piece() const {
     return PIECE::EMPTY;
 }
 
-void move::print_move() const{
+void move::print_move() const {
     if (castle_kside()) {
         cout << "COLOUR : " << colour_names[static_cast<int>(colour)] << " CASTLED KSIDE" << endl;
         return;
@@ -110,8 +134,8 @@ void move::print_move() const{
 }
 
 bool move::operator==(const move &other) const {
-    return (other.start_location == start_location &&
-            other.end_location == end_location && other.move_flags == move_flags);
+    return (other.start_location == start_location && other.end_location == end_location &&
+            other.move_flags == move_flags);
 }
 
 void move_generator::update(const board &new_board) { current = new_board; }
@@ -413,21 +437,19 @@ std::vector<move> move_generator::get_pawn_moves() {
             u64 pawn = white_pawns ^ (white_pawns & (white_pawns - 1));
             int pawn_loc = lsb(pawn);
 
-            // pawn promotion
+            u64 single_step = pawn << 8;
+
+            // pawn promotion on single step push
             if (pawn_loc / 8 == 6) {
-                u64 single_step = pawn << 8;
                 if (!(single_step & current.all_pieces())) {
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::QUEEN));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::ROOK));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::BISHOP));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::KNIGHT));
                 }
-                white_pawns &= white_pawns - 1;
-                continue;
             }
 
-            u64 single_step = pawn << 8;
-            if (!(single_step & current.all_pieces())) {
+            if (pawn_loc / 8 != 6 && !(single_step & current.all_pieces())) {
                 candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step));
 
                 // if at start square, can have double push
@@ -441,8 +463,16 @@ std::vector<move> move_generator::get_pawn_moves() {
             // left capture (possible if not on a-file)
             if (pawn_loc % 8 != 0) {
                 u64 left_capture = (pawn << 8) >> 1;
-                if (left_capture & current.all_black_pieces())
-                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true));
+                if (left_capture & current.all_black_pieces()) {
+                    // pawn promotion + capture
+                    if (pawn_loc / 8 == 6) {
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true, PIECE::QUEEN));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true, PIECE::ROOK));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true, PIECE::BISHOP));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true, PIECE::KNIGHT));
+                    } else
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true));
+                }
                 if (left_capture == current.enpass_capture_square)
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true, true));
             }
@@ -450,8 +480,18 @@ std::vector<move> move_generator::get_pawn_moves() {
             // right capture (possible if not on h-file)
             if (pawn_loc % 8 != 7) {
                 u64 right_capture = (pawn << 8) << 1;
-                if (right_capture & current.all_black_pieces())
-                    candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true));
+                if (right_capture & current.all_black_pieces()){
+                    // pawn promotion + capture
+                    if (pawn_loc / 8 == 6) {
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, PIECE::QUEEN));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, PIECE::ROOK));
+                        candidates.push_back(
+                            move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, PIECE::BISHOP));
+                        candidates.push_back(
+                            move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, PIECE::KNIGHT));
+                    } else
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true));
+                }
                 if (right_capture == current.enpass_capture_square)
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, true));
             }
@@ -463,20 +503,19 @@ std::vector<move> move_generator::get_pawn_moves() {
             u64 pawn = black_pawns ^ (black_pawns & (black_pawns - 1));
             int pawn_loc = lsb(pawn);
 
+            u64 single_step = pawn >> 8;
+
+            // pawn promotion on single step push
             if (pawn_loc / 8 == 1) {
-                u64 single_step = pawn >> 8;
                 if (!(single_step & current.all_pieces())) {
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::QUEEN));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::ROOK));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::BISHOP));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::KNIGHT));
                 }
-                black_pawns &= black_pawns - 1;
-                continue;
             }
 
-            u64 single_step = pawn >> 8;
-            if (!(single_step & current.all_pieces())) {
+            if (pawn_loc / 8 != 1 && !(single_step & current.all_pieces())) {
                 candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step));
 
                 // if at start square, can have double push
@@ -490,8 +529,16 @@ std::vector<move> move_generator::get_pawn_moves() {
             // left capture (possible if not on a-file)
             if (pawn_loc % 8 != 0) {
                 u64 left_capture = (pawn >> 8) >> 1;
-                if (left_capture & current.all_white_pieces())
-                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true));
+                if (left_capture & current.all_white_pieces()){
+                    // pawn promotion + capture
+                    if (pawn_loc / 8 == 1) {
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, PIECE::QUEEN));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, PIECE::ROOK));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, PIECE::BISHOP));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, PIECE::KNIGHT));
+                    } else
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true));
+                }
                 if (left_capture == current.enpass_capture_square)
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, true));
             }
@@ -499,8 +546,18 @@ std::vector<move> move_generator::get_pawn_moves() {
             // right capture (possible if not on h-file)
             if (pawn_loc % 8 != 7) {
                 u64 right_capture = (pawn >> 8) << 1;
-                if (right_capture & current.all_white_pieces())
-                    candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true));
+                if (right_capture & current.all_white_pieces()){
+                    // pawn promotion + capture
+                    if (pawn_loc / 8 == 1) {
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, PIECE::QUEEN));
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, PIECE::ROOK));
+                        candidates.push_back(
+                            move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, PIECE::BISHOP));
+                        candidates.push_back(
+                            move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, PIECE::KNIGHT));
+                    } else
+                        candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true));
+                }
                 if (right_capture == current.enpass_capture_square)
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, true));
             }

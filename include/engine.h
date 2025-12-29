@@ -62,18 +62,22 @@ never play into branch of computation. Hence, for given any position we can say 
 each node we try to tighten the window, ie. maximise alpha and minimise beta.
 
 NODE CLASSIFICATION :-
-PV (principal variation) NODE : alpha <= eval(node) <= beta, it's value is the exact eval of the position.
-CUT NODE (fail hight) : beta <= eval(node), we prune this node from the search. To gauge eval(node), atleast one child
-of the node must be searched. 
-ALL NODE (fail low) : eval(node) <= alpha, all moves from this node should be evaluated to arrive at this conclusion.
+PV (principal variation) NODE : alpha < eval(node) < beta, it's value is the exact eval of the position.
+CUT NODE (fail high) : beta <= eval(node), we prune this node from the search. To gauge eval(node), atleast one child
+of the node must be searched.
+ALL NODE (fail low) : eval(node) <= alpha, all children of this node should be evaluated to arrive at this conclusion.
+
+while storing a cut node in the TT, we claim that the value stored is a lower bound on its true eval, ie. eval(pos) >=
+value while storing an all node in the TT, we claim that the value stored is an upper bound on its true eval, ie.
+eval(pos) <= value
 */
 
 template <typename rulebook> class engine {
   public:
     rulebook rules;
     tt table;
-    int nodes_seen = 0;
-    int tt_hits = 0;
+    u32 nodes_seen = 0;
+    u32 tt_hits = 0;
 
     void order_moves(const board &b, std::vector<move> &moves);
     std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
@@ -117,11 +121,11 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
         moves[i] = temp[i];
 }
 
-// minimax with alpha beta pruning upto specified depth
+// minimax with alpha beta pruning upto specified depth along with caching (transposition table)
 // returns current evaluation of the position, and the best move.
 template <typename rulebook>
 std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha,
-                                                 float beta) {
+                                                    float beta) {
     if (turn == COLOUR::NONE)
         return {move(), 0.0f};
 
@@ -130,26 +134,23 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     float beta_orig = beta;
 
     tt_entry entry = table.probe(b.zhash);
-    if(entry.zkey == b.zhash && entry.depth >= depth){
+    if (entry.zkey == b.zhash && entry.depth >= depth) {
         tt_hits++;
-        //cout << "TT TABLE HIT : ";
-        switch(entry.node_type){
-            case TT_FLAG::EXACT:
-                //cout << "EXACT" << endl;
-                return std::pair{entry.best_move, entry.eval};
-                break;
-            case TT_FLAG::LOWER_BOUND:
-                //cout << "LOWER BOUND" << endl;
-                alpha = std::max(alpha, entry.eval);
-                break;
-            case TT_FLAG::UPPER_BOUND:
-                //cout << "UPPER BOUND" << endl;
-                beta = std::min(beta, entry.eval);
-                break;
-            default: break;
+        switch (entry.node_type) {
+        case TT_FLAG::EXACT:
+            return std::pair{entry.best_move, entry.eval};
+            break;
+        case TT_FLAG::LOWER_BOUND:
+            alpha = std::max(alpha, entry.eval);
+            break;
+        case TT_FLAG::UPPER_BOUND:
+            beta = std::min(beta, entry.eval);
+            break;
+        default:
+            break;
         }
 
-        if(alpha >= beta){
+        if (alpha >= beta) {
             return {entry.best_move, entry.eval};
         }
     }
@@ -178,7 +179,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     for (const move &mv : all_moves) {
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-        next_board.zhash = (turn == COLOUR::WHITE) ? next_board.zhash : next_board.zhash ^ zobrist::rv_colour;
+        next_board.zhash ^= zobrist::rv_colour;
 
         // simulate current move
         if (mv.castle_kside()) {
@@ -211,10 +212,9 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
             break;
     }
     TT_FLAG flag = TT_FLAG::EXACT;
-    if(best_move.second >= beta_orig){
+    if (best_move.second >= beta_orig) {
         flag = TT_FLAG::LOWER_BOUND;
-    }
-    else if(best_move.second <= alpha_orig){
+    } else if (best_move.second <= alpha_orig) {
         flag = TT_FLAG::UPPER_BOUND;
     }
     table.insert(tt_entry(b.zhash, depth, best_move.second, best_move.first, table.tt_generation, flag));
@@ -326,7 +326,6 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
         no_capture_moves = false;
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-        next_board.zhash = (turn == COLOUR::WHITE) ? next_board.zhash : next_board.zhash ^ zobrist::rv_colour;
 
         if (mv.castle_kside()) {
             rules.castle_kside(next_board, turn);

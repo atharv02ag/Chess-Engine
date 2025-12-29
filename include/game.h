@@ -70,7 +70,11 @@ template <typename rulebook> move game<rulebook>::parse_move(const std::string &
                 break;
             }
             if (promo_piece != PIECE::EMPTY)
-                return move(start_piece_type, start_piece_colour, start_location, end_location, promo_piece);
+                // promo + capture detection
+                if (end_piece_type != PIECE::EMPTY)
+                    return move(start_piece_type, start_piece_colour, start_location, end_location, true, promo_piece);
+                else
+                    return move(start_piece_type, start_piece_colour, start_location, end_location, promo_piece);
             else
                 return move(PIECE::EMPTY, COLOUR::NONE, start_location, end_location);
         }
@@ -118,5 +122,6 @@ template <typename rulebook> bool game<rulebook>::make_move(const move &move_to_
     rules.update_flags(chess_board, move_to_make);
 
     turn = chess_board.turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+    chess_board.zhash ^= zobrist::rv_colour;
     return true;
 }

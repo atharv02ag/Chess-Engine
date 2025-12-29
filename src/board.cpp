@@ -1,5 +1,4 @@
 #include "../include/board.h"
-#include "../include/zobrist.h"
 
 board::board() {
     for (int i = 0; i < 12; i++)
@@ -15,7 +14,7 @@ board::board() {
 }
 
 void board::init_hash(){
-    // zhash = (turn == COLOUR::WHITE) ? zobrist::rv_colour : 0ULL;
+    zhash = (turn == COLOUR::WHITE) ? zobrist::rv_colour : 0ULL;
     for(int i = 0; i<12; i++){
         for(int j = 0; j<64; j++){
             u64 loc = 1ULL << j;

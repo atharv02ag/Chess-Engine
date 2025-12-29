@@ -11,29 +11,28 @@
 // test 3 = 4r1k1/1p3pp1/p2Qp3/3p1qBp/3P3P/PP6/2n2PP1/2R3K1 w - - 4 28 - PASS
 // test 4 = r3k2r/ppp2ppp/3p4/2b5/4P2q/2N2b1P/PPP1BP2/R1B1QRK1 b kq - 1 13 - PASS
 
-// NOTE : before using the engine, make sure to instantiate zobrist keys using zobrist::init();
-
 
 int main() {
     // freopen("log.txt", "w", stdout);
-    zobrist::init();
     game<std_rules> g;
     engine<std_rules> e;
     int depth = 6;
     g.show_board();
-    for(int i = 0; i<50; i++){
+    for(int i = 0; i<100; i++){
+        e.nodes_seen = 0;
+        e.tt_hits = 0;
         std::string enemy_move;
         cin >> enemy_move;
         move b = g.parse_move(enemy_move);
         g.make_move(b);
         cout << "iter : " << i << endl;
         g.show_board();
-        auto [m, em] = e.minimax(g.chess_board, g.turn, depth, -INF, INF);
+        auto [m, em] = e.minimax_tt(g.chess_board, g.turn, depth, -INF, INF);
         if (m.piece == PIECE::EMPTY) {
             break;
         }
         m.print_move();
-        cout << "eval : " << em << endl;
+        cout << "eval : " << em << ", tt hits : " << e.tt_hits << ", total nodes seen : " << e.nodes_seen << endl;
         g.make_move(m);
         g.show_board();
     }

@@ -4,12 +4,11 @@
 
 class board {
   public:
-    // wp, wr, wn, wb, wk, wq, bp, br, bn, bb, bk, bq
-    u64 pieces[12];
-    u32 flags;
-    u64 enpass_capture_square;
+    u64 pieces[12];            // wp, wr, wn, wb, wk, wq, bp, br, bn, bb, bk, bq
+    u32 flags;                 // castling flags
+    u64 enpass_capture_square; // if enpass is possible, stores end position of the pawn after capture
     COLOUR turn;
-    u64 zhash;
+    u64 zhash;                 // zobrist hash of the position
 
     board();
     board(const board &b) = default;
@@ -20,8 +19,8 @@ class board {
     u64 all_white_pieces() const;
     u64 all_black_pieces() const;
     u64 all_pieces() const;
-    bool set_piece(const u64& location, const PIECE& piece, const COLOUR& colour);
-    std::pair<COLOUR, PIECE> get_piece(const u64& location) const;
+    bool set_piece(const u64 &location, const PIECE &piece, const COLOUR &colour);
+    std::pair<COLOUR, PIECE> get_piece(const u64 &location) const;
     void apply_move(const move &move_to_make);
     void print_board() const;
 };

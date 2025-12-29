@@ -10,7 +10,6 @@
                 "${fileDirname}\\board.cpp",
                 "${fileDirname}\\main.cpp",
                 "${fileDirname}\\move.cpp",
-                "${fileDirname}\\zobrist.cpp",
                 "${fileDirname}\\tt.cpp",
                 "-O3",
                 "-march=native",
@@ -40,7 +39,6 @@
                 "${fileDirname}\\board.cpp",
                 "${fileDirname}\\main.cpp",
                 "${fileDirname}\\move.cpp",
-                "${fileDirname}\\zobrist.cpp",
                 "${fileDirname}\\tt.cpp",
                 "-o",
                 "${fileDirname}\\..\\${fileBasenameNoExtension}.exe"
@@ -67,7 +65,6 @@
                 "${fileDirname}\\board.cpp",
                 "${fileDirname}\\test.cpp",
                 "${fileDirname}\\move.cpp",
-                "${fileDirname}\\zobrist.cpp",
                 "${fileDirname}\\tt.cpp",
                 "-O3",
                 "-march=native",
