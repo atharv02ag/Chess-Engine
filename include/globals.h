@@ -29,7 +29,7 @@ inline constexpr std::array<std::pair<int, int>, 8> king_offsets = {
     std::pair{0, 1}, std::pair{0, -1}, std::pair{1, 0},  std::pair{-1, 0}};
 
 namespace zobrist {
-inline constexpr std::array<std::array<u64, 64>, 13> rv_pieces = {{
+inline constexpr std::array<std::array<u64, 64>, 12> rv_pieces = {{
     {1070557060675899860ULL,  11673239365977391183ULL, 2536430265668848836ULL,  6386251678626312979ULL,
      12541033952917087183ULL, 5339449794523040709ULL,  12750077904404660349ULL, 11776316634251593235ULL,
      14111141671771851535ULL, 9932267537567005991ULL,  1614885854833680346ULL,  12467772381453381816ULL,
