@@ -16,8 +16,15 @@ int main() {
     // freopen("log.txt", "w", stdout);
     game<std_rules> g;
     engine<std_rules> e;
-    int depth = 6;
+    int depth = 7;
     g.show_board();
+    auto tt_count = [&](){
+        int ct = 0;
+        for(const auto& entry : e.table.container){
+            if(entry.zkey) ct++;
+        }
+        return ct;
+    };
     for(int i = 0; i<100; i++){
         e.nodes_seen = 0;
         e.tt_hits = 0;
@@ -33,6 +40,7 @@ int main() {
         }
         m.print_move();
         cout << "eval : " << em << ", tt hits : " << e.tt_hits << ", total nodes seen : " << e.nodes_seen << endl;
+        cout << "occupancy : " << float(tt_count())/float(TT_SIZE) << endl;
         g.make_move(m);
         g.show_board();
     }

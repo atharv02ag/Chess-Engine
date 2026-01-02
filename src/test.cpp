@@ -19,7 +19,7 @@
 
 int main() {
     // freopen("log.txt", "w", stdout);
-    game<std_rules> g("r1kr4/4P1p1/pBB2p1p/8/2p5/p1P2KP1/1P5P/8 w - - 0 33");
+    game<std_rules> g("6rk/pp3pp1/3qp2p/2R3n1/1P6/PN6/4QPPP/6K1 w - - 0 1");
     engine<std_rules> e;
     int depth = 6;
     g.show_board();
@@ -34,7 +34,7 @@ int main() {
     auto [m1 , em1] = e.minimax_tt(g.chess_board, g.turn, depth, -INF, INF);
     auto end2 = std::chrono::high_resolution_clock::now();
     cout << "time with tt : " << std::chrono::duration<double>(end2 - start2).count() << endl;
-    m.print_move();
+    m1.print_move();
     cout << "eval : " << em1 << endl;
     cout << "tt hits : " << e.tt_hits << ", nodes searched : " << e.nodes_seen << endl;
     

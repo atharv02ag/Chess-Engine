@@ -16,7 +16,7 @@ using std::cout;
 using std::endl;
 
 inline constexpr float INF = 100000000.0f;
-inline constexpr int TT_SIZE = 1 << 24;
+inline constexpr int TT_SIZE = 1 << 25;
 
 inline constexpr std::array<std::string_view, 3> colour_names = {"WHITE", "BLACK", "NONE"};
 inline constexpr std::array<std::string_view, 7> piece_names = {"EMPTY",  "PAWN", "ROOK", "KNIGHT",
