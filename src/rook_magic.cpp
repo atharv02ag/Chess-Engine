@@ -12,17 +12,18 @@
 /*
 rook_movement_masks2 = rook_movement_masks with edge cells not included
 blockers(pos) = rook_movement_masks2[pos] & all_pieces();
-map : blockers --> rook_legal_moves;
-let r = pop_ct(rook_movement_masks2[pos])
-let idx = ( blockers(pos) * magic[pos] ) >> (64 - r)
+GOAL = map : blockers --> rook_legal_moves;
+let r = pop_ct(rook_movement_masks2[pos]) <-- no. of bits required to represent all possible blocker configs
+let idx = ( blockers(pos) * magic[pos] ) >> (64 - r) <-- one way hash function
 rook_legal_moves(pos, board) = rook_moves[pos][idx];
 
 constructing 64 magic numbers
+
 for(all 64 positions):-
     let pos = current pos
     let r = pop_ct(rook_movement_masks2[pos])
     for(n times):-
-        let magic = random key
+        let magic = random sparse key
         let table : empty
         for(all possible blockers configs):-
             let blockers = current blockers
@@ -41,16 +42,6 @@ static std::mt19937 rng(0xC0FFEE);
 inline u64 gen_rand_key() { return (u64(rng()) << 32) | u64(rng()); }
 
 inline u64 gen_rand_sparse_key() { return gen_rand_key() & gen_rand_key() & gen_rand_key(); }
-
-void print_bitboard(const u64 &bitboard) {
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            u64 loc = 8 * i + j;
-            cout << ((bitboard >> loc) & 1) << " ";
-        }
-        cout << endl;
-    }
-}
 
 u64 get_rook_mvmt_mask(int r, int c) {
     u64 ans = 0ULL;
@@ -116,8 +107,8 @@ std::vector<u64> possible_blockers_configs(const int &pos) {
 }
 
 u64 legal_rook_moves_mask(const int &pos, const u64 &blockers) {
-    int r = pos/8;
-    int c = pos%8;
+    int r = pos / 8;
+    int c = pos % 8;
     u64 piece_location = 1ULL << pos;
     u64 result = 0ULL;
     for (int i = 1; i < 8; i++) {
@@ -143,7 +134,7 @@ u64 legal_rook_moves_mask(const int &pos, const u64 &blockers) {
     for (int i = 1; i < 8; i++) {
         if (r + i > 7)
             break;
-        u64 temp_location = piece_location << (8*i);
+        u64 temp_location = piece_location << (8 * i);
         if (temp_location & blockers) {
             result |= temp_location;
             break;
@@ -153,7 +144,7 @@ u64 legal_rook_moves_mask(const int &pos, const u64 &blockers) {
     for (int i = 1; i < 8; i++) {
         if (r - i < 0)
             break;
-        u64 temp_location = piece_location >> (8*i);
+        u64 temp_location = piece_location >> (8 * i);
         if (temp_location & blockers) {
             result |= temp_location;
             break;
@@ -163,44 +154,39 @@ u64 legal_rook_moves_mask(const int &pos, const u64 &blockers) {
     return result;
 }
 
-constexpr int num_iters = 1e8;
+constexpr int num_iters = 1e7;
 
 int main() {
-
-    freopen("log.txt", "w", stdout);
+    freopen("rook.txt", "w", stdout);
+    
     for (int pos = 0; pos < 64; pos++) {
         int r = pop_ct(rook_movement_masks_no_edges[pos]);
+        auto configs = possible_blockers_configs(pos);
         for (int iter = 0; iter < num_iters; iter++) {
             u64 magic_key = gen_rand_sparse_key();
             std::vector<u64> table((1ULL << r), 0ULL);
-            auto configs = possible_blockers_configs(pos);
             bool collision = false;
             for (const auto &blockers : configs) {
                 int idx = (u64(magic_key * blockers) >> (64 - r));
                 u64 legal_moves_mask = legal_rook_moves_mask(pos, blockers);
-                if(!table[idx] || table[idx] == legal_moves_mask) table[idx] = legal_moves_mask;
-                else{
+                if (!table[idx] || table[idx] == legal_moves_mask)
+                    table[idx] = legal_moves_mask;
+                else {
                     collision = true;
                     break;
                 }
             }
-            if(!collision){
-                cout << "pos : " << pos << ", rook magic : " << magic_key << "ULL" << endl;
-                cout << "table = { ";
-                for(const auto& mask : table){
-                    cout << mask << "ULL, ";
+            if (!collision) {
+                cout << pos << " " << magic_key << endl;
+                cout << table.size() << endl;
+                for (const auto &mask : table) {
+                    cout << mask << " ";
                 }
-                cout << "}" << endl;
+                cout << endl;
                 break;
             }
         }
     }
-
-    // auto all = possible_blockers_configs(14);
-    // auto legal = legal_rook_moves_mask(14, all[100]);
-    // print_bitboard(all[100]);
-    // cout << endl;
-    // print_bitboard(legal);
 
     return 0;
 }
