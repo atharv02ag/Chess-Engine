@@ -1,13 +1,4 @@
 #include "../include/board.h"
-#include "../include/engine.h"
-#include "../include/game.h"
-#include "../include/globals.h"
-#include "../include/magic.h"
-#include "../include/move.h"
-#include "../include/move_generator.h"
-#include "../include/rules.h"
-
-#include "../include/board.h"
 #include "../include/globals.h"
 #include "../include/magic.h"
 
@@ -40,18 +31,18 @@ u64 get_king_moves(const COLOUR &turn, const board &b) {
         mask &= set_cols[c + 1];
     if (c - 1 > 0)
         mask &= set_cols[c - 1];
-    mask = (turn == COLOUR::BLACK) ? mask & (~b.all_black_pieces()) : mask & (~b.all_white_pieces());
+    mask = (turn == COLOUR::WHITE) ? mask & (~b.all_black_pieces()) : mask & (~b.all_white_pieces());
     return mask;
 }
 
-std::vector<u64> get_knight_moves(const COLOUR& turn, const board& b){
+std::vector<u64> get_knight_moves(const COLOUR &turn, const board &b) {
     u64 knights = b.pieces[get_piece_idx(turn, PIECE::KNIGHT)];
     std::vector<u64> result;
     while (knights) {
         u64 cur = knights ^ (knights & (knights - 1));
         u64 legal_moves = knight_moves[lsb(cur)];
         legal_moves =
-            (turn == COLOUR::BLACK) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
+            (turn == COLOUR::WHITE) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
         result.push_back(legal_moves);
         knights &= knights - 1;
     }
@@ -67,7 +58,7 @@ std::vector<u64> get_bishop_moves(const COLOUR &turn, const board &b) {
         u64 blockers = (b.all_pieces() & bishop_movement_masks_no_edges[pos]);
         u64 legal_moves = get_diagonal_moves(blockers, pos);
         legal_moves =
-            (turn == COLOUR::BLACK) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
+            (turn == COLOUR::WHITE) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
         result.push_back(legal_moves);
         bishops &= bishops - 1;
     }
@@ -83,7 +74,7 @@ std::vector<u64> get_rook_moves(const COLOUR &turn, const board &b) {
         u64 blockers = (b.all_pieces() & rook_movement_masks_no_edges[pos]);
         u64 legal_moves = get_hv_moves(blockers, pos);
         legal_moves =
-            (turn == COLOUR::BLACK) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
+            (turn == COLOUR::WHITE) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
         result.push_back(legal_moves);
         rooks &= rooks - 1;
     }
@@ -101,7 +92,7 @@ std::vector<u64> get_queen_moves(const COLOUR &turn, const board &b) {
         u64 legal_moves_diag = get_diagonal_moves(blockers, pos);
         blockers = (b.all_pieces() & rook_movement_masks_no_edges[pos]);
         u64 legal_moves_hv = get_hv_moves(blockers, pos);
-        u64 legal_moves = (turn == COLOUR::BLACK) ? (legal_moves_diag | legal_moves_hv) & (~b.all_black_pieces())
+        u64 legal_moves = (turn == COLOUR::WHITE) ? (legal_moves_diag | legal_moves_hv) & (~b.all_black_pieces())
                                                   : (legal_moves_diag | legal_moves_hv) & (~b.all_white_pieces());
         result.push_back(legal_moves);
         queens &= queens - 1;
@@ -110,7 +101,7 @@ std::vector<u64> get_queen_moves(const COLOUR &turn, const board &b) {
     return result;
 }
 
-std::vector<move> get_pawn_moves(const COLOUR& turn, const board& current) {
+std::vector<move> get_pawn_moves(const COLOUR &turn, const board &current) {
     if (turn == COLOUR::NONE)
         return {};
 
@@ -164,7 +155,7 @@ std::vector<move> get_pawn_moves(const COLOUR& turn, const board& current) {
             // right capture (possible if not on h-file)
             if (pawn_loc % 8 != 7) {
                 u64 right_capture = (pawn << 8) << 1;
-                if (right_capture & current.all_black_pieces()){
+                if (right_capture & current.all_black_pieces()) {
                     // pawn promotion + capture
                     if (pawn_loc / 8 == 6) {
                         candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, PIECE::QUEEN));
@@ -213,7 +204,7 @@ std::vector<move> get_pawn_moves(const COLOUR& turn, const board& current) {
             // left capture (possible if not on a-file)
             if (pawn_loc % 8 != 0) {
                 u64 left_capture = (pawn >> 8) >> 1;
-                if (left_capture & current.all_white_pieces()){
+                if (left_capture & current.all_white_pieces()) {
                     // pawn promotion + capture
                     if (pawn_loc / 8 == 1) {
                         candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, PIECE::QUEEN));
@@ -230,7 +221,7 @@ std::vector<move> get_pawn_moves(const COLOUR& turn, const board& current) {
             // right capture (possible if not on h-file)
             if (pawn_loc % 8 != 7) {
                 u64 right_capture = (pawn >> 8) << 1;
-                if (right_capture & current.all_white_pieces()){
+                if (right_capture & current.all_white_pieces()) {
                     // pawn promotion + capture
                     if (pawn_loc / 8 == 1) {
                         candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, PIECE::QUEEN));
@@ -335,19 +326,138 @@ std::vector<move> get_all_generic_moves(const COLOUR &turn, const board &b) {
     }
 
     auto pawn_moves = get_pawn_moves(turn, b);
-    
-    return all_moves;    
+
+    return all_moves;
 }
 
-int main() {
+bool is_attacked_by_bishop(const board &b, const COLOUR &attacker, const u64 &target_location) {
+    if (!target_location)
+        return false;
 
-    game<std_rules> g1("r1bqkbn1/ppp3p1/2np3r/4p2p/P3P2P/1P5R/2PP1PP1/RNBQKB2 w Qq - 1 8");
+    u64 bishops = b.pieces[get_piece_idx(attacker, PIECE::BISHOP)];
+    while (bishops) {
+        u64 cur = bishops ^ (bishops & (bishops - 1));
+        int pos = lsb(cur);
+        u64 blockers = (b.all_pieces() & bishop_movement_masks_no_edges[pos]);
+        u64 legal_moves = get_diagonal_moves(blockers, pos);
+        if (legal_moves & target_location)
+            return true;
+        bishops &= bishops - 1;
+    }
+    return false;
+}
 
-    g1.show_board();
-    auto all = get_all_generic_moves(g1.turn, g1.chess_board);
-    for(auto e : all){
-        e.print_move();
+bool is_attacked_by_rook(const board &b, const COLOUR &attacker, const u64 &target_location) {
+    if (!target_location)
+        return false;
+
+    u64 rooks = b.pieces[get_piece_idx(attacker, PIECE::ROOK)];
+    while (rooks) {
+        u64 cur = rooks ^ (rooks & (rooks - 1));
+        int pos = lsb(cur);
+        u64 blockers = (b.all_pieces() & rook_movement_masks_no_edges[pos]);
+        u64 legal_moves = get_hv_moves(blockers, pos);
+        if (legal_moves & target_location)
+            return true;
+        rooks &= rooks - 1;
+    }
+    return false;
+}
+
+bool is_attacked_by_queen(const board &b, const COLOUR &attacker, const u64 &target_location) {
+    if (!target_location)
+        return false;
+
+    u64 queens = b.pieces[get_piece_idx(attacker, PIECE::ROOK)];
+    while (queens) {
+        u64 cur = queens ^ (queens & (queens - 1));
+        int pos = lsb(cur);
+        u64 blockers = (b.all_pieces() & rook_movement_masks_no_edges[pos]);
+        u64 legal_moves = get_hv_moves(blockers, pos);
+        if (legal_moves & target_location)
+            return true;
+
+        blockers = (b.all_pieces() & bishop_movement_masks_no_edges[pos]);
+        legal_moves = get_diagonal_moves(blockers, pos);
+        if (legal_moves & target_location)
+            return true;
+
+        queens &= queens - 1;
+    }
+    return false;
+}
+
+bool is_attacked_by_knight(const board &b, const COLOUR &attacker, const u64 &target_location) {
+    u64 knights = b.pieces[get_piece_idx(attacker, PIECE::KNIGHT)];
+    while (knights) {
+        u64 cur = knights ^ (knights & (knights - 1));
+        u64 legal_moves = knight_moves[lsb(cur)];
+        if (legal_moves & target_location)
+            return true;
+        knights &= knights - 1;
+    }
+    return false;
+}
+
+bool is_attacked_by_king(const board &b, const COLOUR &attacker, const u64 &target_location) {
+    if (!target_location)
+        return false;
+    u64 attacker_mask = get_king_moves(attacker, b);
+    if (target_location & attacker_mask)
+        return true;
+
+    return false;
+}
+
+bool is_attacked_by_pawn(const board &b, const COLOUR &attacker, const u64 &target_location) {
+    if (!target_location)
+        return false;
+
+    u64 pawns = b.pieces[get_piece_idx(attacker, PIECE::PAWN)];
+    while (pawns) {
+        u64 attacker_location = pawns ^ (pawns & (pawns - 1));
+        if (attacker == COLOUR::WHITE) {
+            int pawn_loc = lsb(attacker_location);
+            if (pawn_loc == 7)
+                continue;
+            if (pawn_loc % 8 != 0 && target_location == ((attacker_location >> 8) >> 1))
+                return true;
+            if (pawn_loc % 8 != 7 && target_location == ((attacker_location >> 8) << 1))
+                return true;
+        } else {
+            int pawn_loc = lsb(attacker_location);
+            if (pawn_loc == 0)
+                continue;
+            if (pawn_loc % 8 != 0 && target_location == ((attacker_location << 8) >> 1))
+                return true;
+            if (pawn_loc % 8 != 7 && target_location == ((attacker_location << 8) << 1))
+                return true;
+        }
+        pawns &= pawns - 1;
     }
 
-    return 0;
+    return false;
+}
+
+bool is_sqr_attacked(const board &b, const COLOUR &attacker, const u64 &target_location) {
+    return is_attacked_by_bishop(b, attacker, target_location) | is_attacked_by_rook(b, attacker, target_location) |
+           is_attacked_by_queen(b, attacker, target_location) | is_attacked_by_knight(b, attacker, target_location) |
+           is_attacked_by_pawn(b, attacker, target_location) | is_attacked_by_king(b, attacker, target_location);
+}
+
+bool is_in_check(const board &b, const COLOUR &turn) {
+    COLOUR attacker = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+    return is_sqr_attacked(b, attacker, b.pieces[get_piece_idx(turn, PIECE::KING)]);
+}
+
+bool is_in_check_after(board &b, const COLOUR &turn, const move &mv) {
+    board temp = b;
+    b.apply_move(mv);
+    if (is_in_check(b, turn)) {
+        b = temp;
+        return true;
+    } else{
+        b = temp;
+        return false;
+    }
 }
