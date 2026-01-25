@@ -224,6 +224,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
         rules.update_flags(next_board, mv);
         // cout << "depth : " << depth << " ";
         // mv.print_move();
+        // b.print_board();
 
         float cur_evaluation = 0.0f;
         int depth_extension = get_depth_extension(next_board, next_turn);
@@ -372,6 +373,7 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
 
         // cout << "depth : " << depth << " ";
         // mv.print_move();
+        // b.print_board();
 
         float cur_evaluation = base_case_minimax(next_board, next_turn, depth - 1, alpha, beta);
         if (turn == COLOUR::WHITE && cur_evaluation > best_eval) {
