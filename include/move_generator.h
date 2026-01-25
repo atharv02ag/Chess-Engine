@@ -23,7 +23,6 @@ class move_generator {
     void update(const board &new_board);
     void update(const COLOUR &new_turn);
     void update(const board &new_board, const COLOUR &new_turn);
-    bool is_attacked_by_pawn(const u64 &target_location);
 
   private:
     board b;
@@ -33,7 +32,7 @@ class move_generator {
     u64 get_king_mask(const int& pos);
     bool is_attacked_by_bishop(const u64 &target_location);
     bool is_attacked_by_rook(const u64 &target_location);
-    
+    bool is_attacked_by_pawn(const u64 &target_location);
     bool is_attacked_by_queen(const u64 &target_location);
     bool is_attacked_by_knight(const u64 &target_location);
     bool is_attacked_by_king(const u64 &target_location);
