@@ -21,7 +21,7 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     auto [m, em] = e.minimax_tt(g1.chess_board, g1.turn, depth, -INF, INF);
     auto end = std::chrono::high_resolution_clock::now();
-    cout << std::chrono::duration<double>(end - start).count() << endl;
+    cout << std::chrono::duration<double>(end - start).count() << "\n";
     m.print_move();
     g1.make_move(m);
     g1.show_board();

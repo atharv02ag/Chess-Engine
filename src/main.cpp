@@ -32,15 +32,15 @@ int main() {
         cin >> enemy_move;
         move b = g.parse_move(enemy_move);
         g.make_move(b);
-        cout << "iter : " << i << endl;
+        cout << "iter : " << i << "\n";
         g.show_board();
         auto [m, em] = e.minimax_tt(g.chess_board, g.turn, depth, -INF, INF);
         if (m.piece == PIECE::EMPTY) {
             break;
         }
         m.print_move();
-        cout << "eval : " << em << ", tt hits : " << e.tt_hits << ", total nodes seen : " << e.nodes_seen << endl;
-        cout << "occupancy : " << float(tt_count())/float(TT_SIZE) << endl;
+        cout << "eval : " << em << ", tt hits : " << e.tt_hits << ", total nodes seen : " << e.nodes_seen << "\n";
+        cout << "occupancy : " << float(tt_count())/float(TT_SIZE) << "\n";
         g.make_move(m);
         g.show_board();
     }

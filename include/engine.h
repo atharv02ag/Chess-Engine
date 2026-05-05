@@ -141,6 +141,7 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
     std::sort(idx.begin(), idx.end(), [&](const int &i, const int &j) { return score[i] > score[j]; });
 
     std::vector<move> temp;
+    temp.reserve(moves.size());
     for (int i = 0; i < moves.size(); i++)
         temp.push_back(moves[idx[i]]);
 

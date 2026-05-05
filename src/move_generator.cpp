@@ -63,6 +63,7 @@ std::vector<u64> move_generator::get_knight_moves() {
         return {};
     u64 knights = b.pieces[get_piece_idx(turn, PIECE::KNIGHT)];
     std::vector<u64> result;
+    result.reserve(10);
     while (knights) {
         u64 cur = knights ^ (knights & (knights - 1));
         u64 legal_moves = knight_moves[lsb(cur)];
@@ -79,6 +80,7 @@ std::vector<u64> move_generator::get_bishop_moves() {
         return {};
     u64 bishops = b.pieces[get_piece_idx(turn, PIECE::BISHOP)];
     std::vector<u64> result;
+    result.reserve(10);
     while (bishops) {
         u64 cur = bishops ^ (bishops & (bishops - 1));
         int pos = lsb(cur);
@@ -97,6 +99,7 @@ std::vector<u64> move_generator::get_rook_moves() {
         return {};
     u64 rooks = b.pieces[get_piece_idx(turn, PIECE::ROOK)];
     std::vector<u64> result;
+    result.reserve(10);
     while (rooks) {
         u64 cur = rooks ^ (rooks & (rooks - 1));
         int pos = lsb(cur);
@@ -116,6 +119,7 @@ std::vector<u64> move_generator::get_queen_moves() {
         return {};
     u64 queens = b.pieces[get_piece_idx(turn, PIECE::QUEEN)];
     std::vector<u64> result;
+    result.reserve(10);
     while (queens) {
         u64 cur = queens ^ (queens & (queens - 1));
         int pos = lsb(cur);
@@ -137,6 +141,7 @@ std::vector<move> move_generator::get_pawn_moves() {
         return {};
 
     std::vector<move> candidates;
+    candidates.reserve(20);
     if (turn == COLOUR::WHITE) {
         u64 white_pawns = b.pieces[get_piece_idx(turn, PIECE::PAWN)];
         while (white_pawns) {
@@ -279,6 +284,7 @@ std::vector<move> move_generator::get_all_generic_moves() {
         return {};
 
     std::vector<move> all_moves;
+    all_moves.reserve(100);
     u64 enemy_pieces = (turn == COLOUR::WHITE) ? b.all_black_pieces() : b.all_white_pieces();
     auto bishop_moves = get_bishop_moves();
     int i = 0;
@@ -361,6 +367,7 @@ std::vector<move> move_generator::get_all_generic_moves() {
 
     auto pawn_moves = get_pawn_moves();
     std::vector<move> result;
+    result.reserve(150);
     for(const auto& mv : all_moves){
         if(!is_in_check_after(mv)){
             result.push_back(mv);

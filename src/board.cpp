@@ -254,5 +254,5 @@ void board::print_board() const {
         }
         cout << "\n";
     }
-    cout << endl;
+    cout << "\n";
 }
