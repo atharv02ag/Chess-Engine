@@ -12,7 +12,7 @@ The move generator supports checks, castling, en passant, captures, and all prom
 
 Rooks and bishops are sliding pieces: their attacks continue along a rank, file, or diagonal until the first blocker. A straightforward generator walks outward one square at a time in every direction, adding each square and stopping when it meets a piece. Although simple, that work is repeated for every rook, bishop, and queen at a very large number of search nodes. It also contains blocker-dependent loops and branches.
 
-This engine instead uses [magic bitboards](https://www.chessprogramming.org/Magic_Bitboards), a form of perfect hashing for sliding-piece attacks. The expensive work is performed in advance and the result is stored in attack tables. During search, generating all attacks for one sliding piece requires only a mask, multiplication, shift, and array lookup.
+This engine instead uses [magic bitboards](https://analog-hors.github.io/site/magic-bitboards/), a form of perfect hashing for sliding-piece attacks. The expensive work is performed in advance and the result is stored in attack tables. During search, generating all attacks for one sliding piece requires only a mask, multiplication, shift, and array lookup.
 
 ### Relevant blockers and the lookup
 
