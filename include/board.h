@@ -22,5 +22,5 @@ class board {
     bool set_piece(const u64 &location, const PIECE &piece, const COLOUR &colour);
     std::pair<COLOUR, PIECE> get_piece(const u64 &location) const;
     void apply_move(const move &move_to_make);
-    void print_board() const;
+    void print_board(COLOUR perspective = COLOUR::WHITE) const;
 };

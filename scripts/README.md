@@ -4,7 +4,7 @@ Run the script from any directory with Python 3.9 or newer:
 
 ```sh
 python scripts/run_target.py src/main.cpp
-python scripts/run_target.py src/test.cpp
+python scripts/run_target.py tests/test.cpp
 python scripts/run_target.py tests/perft_tests.cpp
 ```
 

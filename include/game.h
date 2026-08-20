@@ -27,15 +27,21 @@ template <typename rulebook> void game<rulebook>::show_board() { chess_board.pri
 // Parses moves in format "e2e4", "g1f3", "a7a8q" (for promotion),
 // k" and "q" (for black castling), "K" and "Q" (for white castling)
 template <typename rulebook> move game<rulebook>::parse_move(const std::string &move_str) {
-    if (move_str[0] == 'k') {
+    if (move_str == "k") {
         return move(PIECE::KING, COLOUR::BLACK, true, false);
-    } else if (move_str[0] == 'q') {
+    } else if (move_str == "q") {
         return move(PIECE::KING, COLOUR::BLACK, false, true);
-    } else if (move_str[0] == 'K') {
+    } else if (move_str == "K") {
         return move(PIECE::KING, COLOUR::WHITE, true, false);
-    } else if (move_str[0] == 'Q') {
+    } else if (move_str == "Q") {
         return move(PIECE::KING, COLOUR::WHITE, false, true);
     }
+    if (move_str.length() != 4 && move_str.length() != 5)
+        return move();
+    const auto is_file = [](char ch) { return ch >= 'a' && ch <= 'h'; };
+    const auto is_rank = [](char ch) { return ch >= '1' && ch <= '8'; };
+    if (!is_file(move_str[0]) || !is_rank(move_str[1]) || !is_file(move_str[2]) || !is_rank(move_str[3]))
+        return move();
     int start_col = move_str[0] - 'a';
     int start_row = move_str[1] - '1';
     int end_col = move_str[2] - 'a';

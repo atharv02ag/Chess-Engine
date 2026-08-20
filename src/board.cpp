@@ -1,5 +1,7 @@
 #include "../include/board.h"
 
+#include <cctype>
+
 board::board() {
     for (int i = 0; i < 12; i++)
         pieces[i] = 0ULL;
@@ -223,35 +225,42 @@ void board::apply_move(const move &move_to_make) {
         set_piece(move_to_make.end_location, move_to_make.piece, move_to_make.colour);
 }
 
-void board::print_board() const {
-    for (int r = 0; r < 8; r++) {
-        cout << "| ";
-        for (int c = 7; c >= 0; c--) {
-            u64 location = (1ULL << (8 * r)) << c;
-            auto [colour, piece] = get_piece(location);
-            if (colour == COLOUR::WHITE)
-                cout << "W_";
-            else if (colour == COLOUR::BLACK)
-                cout << "B_";
-            else
-                cout << "  ";
-            if (piece == PIECE::BISHOP)
-                cout << "B";
-            else if (piece == PIECE::KNIGHT)
-                cout << "N";
-            else if (piece == PIECE::ROOK)
-                cout << "R";
-            else if (piece == PIECE::KING)
-                cout << "K";
-            else if (piece == PIECE::QUEEN)
-                cout << "Q";
-            else if (piece == PIECE::PAWN)
-                cout << "P";
-            else
-                cout << " ";
-            cout << " | ";
+void board::print_board(COLOUR perspective) const {
+    const bool flipped = perspective == COLOUR::BLACK;
+    auto piece_symbol = [](PIECE piece, COLOUR colour) {
+        char symbol = '.';
+        switch (piece) {
+            case PIECE::PAWN: symbol = 'P'; break;
+            case PIECE::ROOK: symbol = 'R'; break;
+            case PIECE::KNIGHT: symbol = 'N'; break;
+            case PIECE::BISHOP: symbol = 'B'; break;
+            case PIECE::KING: symbol = 'K'; break;
+            case PIECE::QUEEN: symbol = 'Q'; break;
+            default: return symbol;
         }
-        cout << "\n";
+        return colour == COLOUR::BLACK ? static_cast<char>(std::tolower(symbol)) : symbol;
+    };
+
+    cout << "\n    ";
+    for (int column = 0; column < 8; ++column) {
+        const int file = flipped ? 7 - column : column;
+        cout << static_cast<char>('a' + file) << ' ';
     }
-    cout << "\n";
+    cout << "\n  +-----------------+\n";
+    for (int row = 0; row < 8; ++row) {
+        const int rank = flipped ? row : 7 - row;
+        cout << rank + 1 << " | ";
+        for (int column = 0; column < 8; ++column) {
+            const int file = flipped ? 7 - column : column;
+            const auto [colour, piece] = get_piece(1ULL << (rank * 8 + file));
+            cout << piece_symbol(piece, colour) << ' ';
+        }
+        cout << "| " << rank + 1 << '\n';
+    }
+    cout << "  +-----------------+\n    ";
+    for (int column = 0; column < 8; ++column) {
+        const int file = flipped ? 7 - column : column;
+        cout << static_cast<char>('a' + file) << ' ';
+    }
+    cout << "\n\nUppercase = White, lowercase = Black\n";
 }
