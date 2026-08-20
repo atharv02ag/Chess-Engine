@@ -6,7 +6,10 @@ tt_entry::tt_entry(const u64 &zk, const int &d, const float &ev, const move &mv,
 tt_entry tt::probe(u64 hash) {
     if (!hash)
         return tt_entry();
-    return container[hash % TT_SIZE];
+    const tt_entry &entry = container[hash % TT_SIZE];
+    if (entry.generation != tt_generation)
+        return tt_entry();
+    return entry;
 }
 
 tt::tt(){

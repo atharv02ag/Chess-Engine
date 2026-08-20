@@ -33,19 +33,19 @@ void board::init_hash(){
 }
 
 void board::load_fen(const std::string &fen) {
+    for (u64 &piece_set : pieces)
+        piece_set = 0ULL;
+
     std::stringstream ss(fen);
-    std::string board, side, castling, ep;
+    std::string placement, side, castling, ep;
     int halfmove, fullmove;
 
-    ss >> board >> side >> castling >> ep >> halfmove >> fullmove;
+    ss >> placement >> side >> castling >> ep >> halfmove >> fullmove;
 
     int rank = 7;
     int file = 0;
 
-    for (char c : fen) {
-        if (c == ' ')
-            break;
-
+    for (char c : placement) {
         if (c == '/') {
             rank--;
             file = 0;
@@ -115,7 +115,6 @@ void board::load_fen(const std::string &fen) {
     if (castling.find('q') != std::string::npos)
         flags |= static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
 
-    // enpass left unimplemented
     if (ep != "-") {
         int ep_file = ep[0] - 'a';
         int ep_rank = ep[1] - '1';
@@ -130,7 +129,7 @@ void board::load_fen(const std::string &fen) {
 u64 board::all_white_pieces() const {
     u64 all_wp = 0ULL;
     for (int i = 0; i < 6; i++)
-        all_wp ^= pieces[i];
+        all_wp |= pieces[i];
     return all_wp;
 }
 

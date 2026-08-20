@@ -20,12 +20,12 @@ void move_generator::update(const board &new_board, const COLOUR &new_turn) {
 }
 
 u64 move_generator::get_diagonal_mask(const u64 &blockers, const int &pos) {
-    int idx = u64(blockers * bishop_magic_keys[pos]) >> bishop_shifts[pos];
+    const std::size_t idx = u64(blockers * bishop_magic_keys[pos]) >> bishop_shifts[pos];
     return bishop_table[pos][idx];
 }
 
 u64 move_generator::get_hv_mask(const u64 &blockers, const int &pos) {
-    int idx = u64(blockers * rook_magic_keys[pos]) >> rook_shifts[pos];
+    const std::size_t idx = u64(blockers * rook_magic_keys[pos]) >> rook_shifts[pos];
     return rook_table[pos][idx];
 }
 
@@ -54,7 +54,8 @@ u64 move_generator::get_king_moves() {
         return 0ULL;
     const int pos = lsb(b.pieces[get_piece_idx(turn, PIECE::KING)]);
     u64 mask = get_king_mask(pos);
-    mask = (turn == COLOUR::BLACK) ? mask & (~b.all_black_pieces()) : mask & (~b.all_white_pieces());
+    const u64 friendly_pieces = (turn == COLOUR::BLACK) ? b.all_black_pieces() : b.all_white_pieces();
+    mask &= ~friendly_pieces;
     return mask;
 }
 
@@ -62,13 +63,13 @@ std::vector<u64> move_generator::get_knight_moves() {
     if (turn == COLOUR::NONE)
         return {};
     u64 knights = b.pieces[get_piece_idx(turn, PIECE::KNIGHT)];
+    const u64 friendly_pieces = (turn == COLOUR::BLACK) ? b.all_black_pieces() : b.all_white_pieces();
     std::vector<u64> result;
-    result.reserve(10);
+    result.reserve(pop_ct(knights));
     while (knights) {
         u64 cur = knights ^ (knights & (knights - 1));
         u64 legal_moves = knight_moves[lsb(cur)];
-        legal_moves =
-            (turn == COLOUR::BLACK) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
+        legal_moves &= ~friendly_pieces;
         result.push_back(legal_moves);
         knights &= knights - 1;
     }
@@ -79,15 +80,16 @@ std::vector<u64> move_generator::get_bishop_moves() {
     if (turn == COLOUR::NONE)
         return {};
     u64 bishops = b.pieces[get_piece_idx(turn, PIECE::BISHOP)];
+    const u64 occupied = b.all_pieces();
+    const u64 friendly_pieces = (turn == COLOUR::BLACK) ? b.all_black_pieces() : b.all_white_pieces();
     std::vector<u64> result;
-    result.reserve(10);
+    result.reserve(pop_ct(bishops));
     while (bishops) {
         u64 cur = bishops ^ (bishops & (bishops - 1));
         int pos = lsb(cur);
-        u64 blockers = (b.all_pieces() & bishop_movement_masks_no_edges[pos]);
+        u64 blockers = (occupied & bishop_movement_masks_no_edges[pos]);
         u64 legal_moves = get_diagonal_mask(blockers, pos);
-        legal_moves =
-            (turn == COLOUR::BLACK) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
+        legal_moves &= ~friendly_pieces;
         result.push_back(legal_moves);
         bishops &= bishops - 1;
     }
@@ -98,15 +100,16 @@ std::vector<u64> move_generator::get_rook_moves() {
     if (turn == COLOUR::NONE)
         return {};
     u64 rooks = b.pieces[get_piece_idx(turn, PIECE::ROOK)];
+    const u64 occupied = b.all_pieces();
+    const u64 friendly_pieces = (turn == COLOUR::BLACK) ? b.all_black_pieces() : b.all_white_pieces();
     std::vector<u64> result;
-    result.reserve(10);
+    result.reserve(pop_ct(rooks));
     while (rooks) {
         u64 cur = rooks ^ (rooks & (rooks - 1));
         int pos = lsb(cur);
-        u64 blockers = (b.all_pieces() & rook_movement_masks_no_edges[pos]);
+        u64 blockers = (occupied & rook_movement_masks_no_edges[pos]);
         u64 legal_moves = get_hv_mask(blockers, pos);
-        legal_moves =
-            (turn == COLOUR::BLACK) ? legal_moves & (~b.all_black_pieces()) : legal_moves & (~b.all_white_pieces());
+        legal_moves &= ~friendly_pieces;
         result.push_back(legal_moves);
         rooks &= rooks - 1;
     }
@@ -118,17 +121,18 @@ std::vector<u64> move_generator::get_queen_moves() {
     if (turn == COLOUR::NONE)
         return {};
     u64 queens = b.pieces[get_piece_idx(turn, PIECE::QUEEN)];
+    const u64 occupied = b.all_pieces();
+    const u64 friendly_pieces = (turn == COLOUR::BLACK) ? b.all_black_pieces() : b.all_white_pieces();
     std::vector<u64> result;
-    result.reserve(10);
+    result.reserve(pop_ct(queens));
     while (queens) {
         u64 cur = queens ^ (queens & (queens - 1));
         int pos = lsb(cur);
-        u64 blockers = (b.all_pieces() & bishop_movement_masks_no_edges[pos]);
+        u64 blockers = (occupied & bishop_movement_masks_no_edges[pos]);
         u64 legal_moves_diag = get_diagonal_mask(blockers, pos);
-        blockers = (b.all_pieces() & rook_movement_masks_no_edges[pos]);
+        blockers = (occupied & rook_movement_masks_no_edges[pos]);
         u64 legal_moves_hv = get_hv_mask(blockers, pos);
-        u64 legal_moves = (turn == COLOUR::BLACK) ? (legal_moves_diag | legal_moves_hv) & (~b.all_black_pieces())
-                                                  : (legal_moves_diag | legal_moves_hv) & (~b.all_white_pieces());
+        u64 legal_moves = (legal_moves_diag | legal_moves_hv) & ~friendly_pieces;
         result.push_back(legal_moves);
         queens &= queens - 1;
     }
@@ -136,12 +140,14 @@ std::vector<u64> move_generator::get_queen_moves() {
     return result;
 }
 
-std::vector<move> move_generator::get_pawn_moves() {
+std::vector<move> move_generator::get_pawn_moves(bool tactical_only) {
     if (turn == COLOUR::NONE)
         return {};
 
     std::vector<move> candidates;
-    candidates.reserve(20);
+    candidates.reserve(tactical_only ? 16 : 32);
+    const u64 occupied = b.all_pieces();
+    const u64 enemy_pieces = (turn == COLOUR::WHITE) ? b.all_black_pieces() : b.all_white_pieces();
     if (turn == COLOUR::WHITE) {
         u64 white_pawns = b.pieces[get_piece_idx(turn, PIECE::PAWN)];
         while (white_pawns) {
@@ -152,7 +158,7 @@ std::vector<move> move_generator::get_pawn_moves() {
 
             // pawn promotion on single step push
             if (pawn_loc / 8 == 6) {
-                if (!(single_step & b.all_pieces())) {
+                if (!(single_step & occupied)) {
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::QUEEN));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::ROOK));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step, PIECE::BISHOP));
@@ -160,13 +166,13 @@ std::vector<move> move_generator::get_pawn_moves() {
                 }
             }
 
-            if (pawn_loc / 8 != 6 && !(single_step & b.all_pieces())) {
+            if (!tactical_only && pawn_loc / 8 != 6 && !(single_step & occupied)) {
                 candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, single_step));
 
                 // if at start square, can have double push
                 if (pawn_loc / 8 == 1) {
                     u64 double_step = pawn << (2 * 8);
-                    if (!(double_step & b.all_pieces()))
+                    if (!(double_step & occupied))
                         candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, double_step));
                 }
             }
@@ -174,7 +180,7 @@ std::vector<move> move_generator::get_pawn_moves() {
             // left capture (possible if not on a-file)
             if (pawn_loc % 8 != 0) {
                 u64 left_capture = (pawn << 8) >> 1;
-                if (left_capture & b.all_black_pieces()) {
+                if (left_capture & enemy_pieces) {
                     // pawn promotion + capture
                     if (pawn_loc / 8 == 6) {
                         candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, left_capture, true, PIECE::QUEEN));
@@ -191,7 +197,7 @@ std::vector<move> move_generator::get_pawn_moves() {
             // right capture (possible if not on h-file)
             if (pawn_loc % 8 != 7) {
                 u64 right_capture = (pawn << 8) << 1;
-                if (right_capture & b.all_black_pieces()) {
+                if (right_capture & enemy_pieces) {
                     // pawn promotion + capture
                     if (pawn_loc / 8 == 6) {
                         candidates.push_back(move(PIECE::PAWN, COLOUR::WHITE, pawn, right_capture, true, PIECE::QUEEN));
@@ -218,7 +224,7 @@ std::vector<move> move_generator::get_pawn_moves() {
 
             // pawn promotion on single step push
             if (pawn_loc / 8 == 1) {
-                if (!(single_step & b.all_pieces())) {
+                if (!(single_step & occupied)) {
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::QUEEN));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::ROOK));
                     candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step, PIECE::BISHOP));
@@ -226,13 +232,13 @@ std::vector<move> move_generator::get_pawn_moves() {
                 }
             }
 
-            if (pawn_loc / 8 != 1 && !(single_step & b.all_pieces())) {
+            if (!tactical_only && pawn_loc / 8 != 1 && !(single_step & occupied)) {
                 candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, single_step));
 
                 // if at start square, can have double push
                 if (pawn_loc / 8 == 6) {
                     u64 double_step = pawn >> (2 * 8);
-                    if (!(double_step & b.all_pieces()))
+                    if (!(double_step & occupied))
                         candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, double_step));
                 }
             }
@@ -240,7 +246,7 @@ std::vector<move> move_generator::get_pawn_moves() {
             // left capture (possible if not on a-file)
             if (pawn_loc % 8 != 0) {
                 u64 left_capture = (pawn >> 8) >> 1;
-                if (left_capture & b.all_white_pieces()) {
+                if (left_capture & enemy_pieces) {
                     // pawn promotion + capture
                     if (pawn_loc / 8 == 1) {
                         candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, left_capture, true, PIECE::QUEEN));
@@ -257,7 +263,7 @@ std::vector<move> move_generator::get_pawn_moves() {
             // right capture (possible if not on h-file)
             if (pawn_loc % 8 != 7) {
                 u64 right_capture = (pawn >> 8) << 1;
-                if (right_capture & b.all_white_pieces()) {
+                if (right_capture & enemy_pieces) {
                     // pawn promotion + capture
                     if (pawn_loc / 8 == 1) {
                         candidates.push_back(move(PIECE::PAWN, COLOUR::BLACK, pawn, right_capture, true, PIECE::QUEEN));
@@ -280,107 +286,112 @@ std::vector<move> move_generator::get_pawn_moves() {
 }
 
 std::vector<move> move_generator::get_all_generic_moves() {
+    return get_all_generic_moves_impl(false);
+}
+
+std::vector<move> move_generator::get_all_tactical_moves() {
+    return get_all_generic_moves_impl(true);
+}
+
+std::vector<move> move_generator::get_all_generic_moves_impl(bool tactical_only) {
     if (turn == COLOUR::NONE)
         return {};
 
-    std::vector<move> all_moves;
-    all_moves.reserve(100);
-    u64 enemy_pieces = (turn == COLOUR::WHITE) ? b.all_black_pieces() : b.all_white_pieces();
-    auto bishop_moves = get_bishop_moves();
-    int i = 0;
-    u64 cur_pieces = b.pieces[get_piece_idx(turn, PIECE::BISHOP)];
-    while (cur_pieces) {
-        u64 cur_start_pos = cur_pieces ^ (cur_pieces & (cur_pieces - 1));
-        while (bishop_moves[i]) {
-            u64 cur_end_pos = bishop_moves[i] ^ (bishop_moves[i] & (bishop_moves[i] - 1));
-            if (cur_end_pos & enemy_pieces)
-                all_moves.push_back(move(PIECE::BISHOP, turn, cur_start_pos, cur_end_pos, true));
-            else
-                all_moves.push_back(move(PIECE::BISHOP, turn, cur_start_pos, cur_end_pos));
-            bishop_moves[i] &= bishop_moves[i] - 1;
-        }
-        i++;
-        cur_pieces &= cur_pieces - 1;
-    }
-
-    auto rook_moves = get_rook_moves();
-    i = 0;
-    cur_pieces = b.pieces[get_piece_idx(turn, PIECE::ROOK)];
-    while (cur_pieces) {
-        u64 cur_start_pos = cur_pieces ^ (cur_pieces & (cur_pieces - 1));
-        while (rook_moves[i]) {
-            u64 cur_end_pos = rook_moves[i] ^ (rook_moves[i] & (rook_moves[i] - 1));
-            if (cur_end_pos & enemy_pieces)
-                all_moves.push_back(move(PIECE::ROOK, turn, cur_start_pos, cur_end_pos, true));
-            else
-                all_moves.push_back(move(PIECE::ROOK, turn, cur_start_pos, cur_end_pos));
-            rook_moves[i] &= rook_moves[i] - 1;
-        }
-        i++;
-        cur_pieces &= cur_pieces - 1;
-    }
-
-    auto queen_moves = get_queen_moves();
-    i = 0;
-    cur_pieces = b.pieces[get_piece_idx(turn, PIECE::QUEEN)];
-    while (cur_pieces) {
-        u64 cur_start_pos = cur_pieces ^ (cur_pieces & (cur_pieces - 1));
-        while (queen_moves[i]) {
-            u64 cur_end_pos = queen_moves[i] ^ (queen_moves[i] & (queen_moves[i] - 1));
-            if (cur_end_pos & enemy_pieces)
-                all_moves.push_back(move(PIECE::QUEEN, turn, cur_start_pos, cur_end_pos, true));
-            else
-                all_moves.push_back(move(PIECE::QUEEN, turn, cur_start_pos, cur_end_pos));
-            queen_moves[i] &= queen_moves[i] - 1;
-        }
-        i++;
-        cur_pieces &= cur_pieces - 1;
-    }
-
-    u64 king_moves = get_king_moves();
-    u64 cur_start_pos = b.pieces[get_piece_idx(turn, PIECE::KING)];
-    while (king_moves) {
-        u64 cur_end_pos = king_moves ^ (king_moves & (king_moves - 1));
-        if (cur_end_pos & enemy_pieces)
-            all_moves.push_back(move(PIECE::KING, turn, cur_start_pos, cur_end_pos, true));
-        else
-            all_moves.push_back(move(PIECE::KING, turn, cur_start_pos, cur_end_pos));
-        king_moves &= king_moves - 1;
-    }
-
-    auto knight_moves = get_knight_moves();
-    i = 0;
-    cur_pieces = b.pieces[get_piece_idx(turn, PIECE::KNIGHT)];
-    while (cur_pieces) {
-        u64 cur_start_pos = cur_pieces ^ (cur_pieces & (cur_pieces - 1));
-        while (knight_moves[i]) {
-            u64 cur_end_pos = knight_moves[i] ^ (knight_moves[i] & (knight_moves[i] - 1));
-            if (cur_end_pos & enemy_pieces)
-                all_moves.push_back(move(PIECE::KNIGHT, turn, cur_start_pos, cur_end_pos, true));
-            else
-                all_moves.push_back(move(PIECE::KNIGHT, turn, cur_start_pos, cur_end_pos));
-            knight_moves[i] &= knight_moves[i] - 1;
-        }
-        i++;
-        cur_pieces &= cur_pieces - 1;
-    }
-
-    auto pawn_moves = get_pawn_moves();
     std::vector<move> result;
-    result.reserve(150);
-    for(const auto& mv : all_moves){
-        if(!is_in_check_after(mv)){
-            result.push_back(mv);
+    result.reserve(tactical_only ? 16 : 64);
+    const u64 enemy_pieces = (turn == COLOUR::WHITE) ? b.all_black_pieces() : b.all_white_pieces();
+
+    auto append_from_masks = [&](PIECE piece, std::vector<u64> masks) {
+        u64 pieces = b.pieces[get_piece_idx(turn, piece)];
+        std::size_t index = 0;
+        while (pieces) {
+            const u64 start = pieces ^ (pieces & (pieces - 1));
+            u64 destinations = masks[index++];
+            while (destinations) {
+                const u64 end = destinations ^ (destinations & (destinations - 1));
+                const bool capture = static_cast<bool>(end & enemy_pieces);
+                if (!tactical_only || capture) {
+                    const move mv(piece, turn, start, end, capture);
+                    if (!is_in_check_after(mv))
+                        result.push_back(mv);
+                }
+                destinations &= destinations - 1;
+            }
+            pieces &= pieces - 1;
         }
+    };
+
+    append_from_masks(PIECE::BISHOP, get_bishop_moves());
+    append_from_masks(PIECE::ROOK, get_rook_moves());
+    append_from_masks(PIECE::QUEEN, get_queen_moves());
+
+    const u64 king_start = b.pieces[get_piece_idx(turn, PIECE::KING)];
+    u64 king_destinations = get_king_moves();
+    while (king_destinations) {
+        const u64 end = king_destinations ^ (king_destinations & (king_destinations - 1));
+        const bool capture = static_cast<bool>(end & enemy_pieces);
+        if (!tactical_only || capture) {
+            const move mv(PIECE::KING, turn, king_start, end, capture);
+            if (!is_in_check_after(mv))
+                result.push_back(mv);
+        }
+        king_destinations &= king_destinations - 1;
     }
 
-    for(const auto& mv : pawn_moves){
-        if(!is_in_check_after(mv)){
+    append_from_masks(PIECE::KNIGHT, get_knight_moves());
+
+    for (const move &mv : get_pawn_moves(tactical_only)) {
+        if (!is_in_check_after(mv))
             result.push_back(mv);
-        }
     }
 
     return result;
+}
+
+bool move_generator::has_any_generic_move() {
+    if (turn == COLOUR::NONE)
+        return false;
+
+    const u64 enemy_pieces = (turn == COLOUR::WHITE) ? b.all_black_pieces() : b.all_white_pieces();
+
+    // Pawns usually provide the quickest legal quiet move in non-terminal positions.
+    for (const move &mv : get_pawn_moves()) {
+        if (!is_in_check_after(mv))
+            return true;
+    }
+
+    u64 start = b.pieces[get_piece_idx(turn, PIECE::KING)];
+    u64 destinations = get_king_moves();
+    while (destinations) {
+        const u64 end = destinations ^ (destinations & (destinations - 1));
+        const move mv(PIECE::KING, turn, start, end, static_cast<bool>(end & enemy_pieces));
+        if (!is_in_check_after(mv))
+            return true;
+        destinations &= destinations - 1;
+    }
+
+    auto has_legal_from_masks = [&](PIECE piece, std::vector<u64> masks) {
+        u64 pieces = b.pieces[get_piece_idx(turn, piece)];
+        std::size_t index = 0;
+        while (pieces) {
+            const u64 piece_start = pieces ^ (pieces & (pieces - 1));
+            u64 ends = masks[index++];
+            while (ends) {
+                const u64 end = ends ^ (ends & (ends - 1));
+                const move mv(piece, turn, piece_start, end, static_cast<bool>(end & enemy_pieces));
+                if (!is_in_check_after(mv))
+                    return true;
+                ends &= ends - 1;
+            }
+            pieces &= pieces - 1;
+        }
+        return false;
+    };
+
+    return has_legal_from_masks(PIECE::KNIGHT, get_knight_moves()) ||
+           has_legal_from_masks(PIECE::BISHOP, get_bishop_moves()) ||
+           has_legal_from_masks(PIECE::ROOK, get_rook_moves()) ||
+           has_legal_from_masks(PIECE::QUEEN, get_queen_moves());
 }
 
 bool move_generator::is_attacked_by_bishop(const u64 &target_location) {
@@ -504,9 +515,37 @@ bool move_generator::is_attacked_by_pawn(const u64 &target_location) {
 }
 
 bool move_generator::is_sqr_attacked(const u64 &target_location) {
-    return (is_attacked_by_bishop(target_location) || is_attacked_by_rook(target_location) ||
-           is_attacked_by_queen(target_location) || is_attacked_by_knight(target_location) ||
-           is_attacked_by_pawn(target_location) || is_attacked_by_king(target_location));
+    if (!target_location || turn == COLOUR::NONE)
+        return false;
+
+    const COLOUR attacker = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+    const int target = lsb(target_location);
+    const u64 occupied = b.all_pieces();
+
+    const u64 rook_attackers = b.pieces[get_piece_idx(attacker, PIECE::ROOK)] |
+                               b.pieces[get_piece_idx(attacker, PIECE::QUEEN)];
+    const u64 rook_blockers = occupied & rook_movement_masks_no_edges[target];
+    if (get_hv_mask(rook_blockers, target) & rook_attackers)
+        return true;
+
+    const u64 bishop_attackers = b.pieces[get_piece_idx(attacker, PIECE::BISHOP)] |
+                                 b.pieces[get_piece_idx(attacker, PIECE::QUEEN)];
+    const u64 bishop_blockers = occupied & bishop_movement_masks_no_edges[target];
+    if (get_diagonal_mask(bishop_blockers, target) & bishop_attackers)
+        return true;
+
+    if (knight_moves[target] & b.pieces[get_piece_idx(attacker, PIECE::KNIGHT)])
+        return true;
+
+    if (get_king_mask(target) & b.pieces[get_piece_idx(attacker, PIECE::KING)])
+        return true;
+
+    const u64 pawns = b.pieces[get_piece_idx(attacker, PIECE::PAWN)];
+    const u64 pawn_attacks =
+        (attacker == COLOUR::WHITE)
+            ? (((pawns & ~set_cols[0]) << 7) | ((pawns & ~set_cols[7]) << 9))
+            : (((pawns & ~set_cols[0]) >> 9) | ((pawns & ~set_cols[7]) >> 7));
+    return static_cast<bool>(pawn_attacks & target_location);
 }
 
 bool move_generator::is_in_check() {
@@ -514,13 +553,7 @@ bool move_generator::is_in_check() {
 }
 
 bool move_generator::is_in_check_after(const move &mv) {
-    board temp = b;
-    b.apply_move(mv);
-    if (is_in_check()) {
-        b = temp;
-        return true;
-    } else{
-        b = temp;
-        return false;
-    }
+    move_generator next(*this);
+    next.b.apply_move(mv);
+    return next.is_in_check();
 }

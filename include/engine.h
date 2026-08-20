@@ -112,41 +112,25 @@ template <typename rulebook> class engine {
 template <typename rulebook> void engine<rulebook>::order_moves(const board &b, std::vector<move> &moves, const move& first_to_try) {
     if (moves.empty())
         return;
-    std::vector<float> score(moves.size(), 0);
-    COLOUR colour = moves[0].colour;
-    move_generator mg(b, colour);
 
     // priority ordering: promotions > checks and captures > others
-    for (int i = 0; i < moves.size(); i++) {
-        if (moves[i].promotion_piece() != PIECE::EMPTY) {
-            score[i] += 10 * PIECE_VALUES[static_cast<int>(moves[i].promotion_piece())];
+    auto score_move = [&](const move &mv) {
+        float score = 1.0f;
+        if (mv.promotion_piece() != PIECE::EMPTY) {
+            score += 10 * PIECE_VALUES[static_cast<int>(mv.promotion_piece())];
         }
-        if (moves[i].piece_captured()) {
-            auto [end_piece_colour, end_piece] = b.get_piece(moves[i].end_location);
-            score[i] += 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(moves[i].piece)];
+        if (mv.piece_captured()) {
+            auto [end_piece_colour, end_piece] = b.get_piece(mv.end_location);
+            score += 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(mv.piece)];
         }
-        if(first_to_try == moves[i]){
-            score[i] += 50;
-        }
-        // if (is_opp_in_check_after(b, colour, moves[i])) {
-        //     score[i] += 70;
-        // }
-        score[i] += 1;
-    }
+        if (first_to_try == mv)
+            score += 50;
+            
+        return score;
+    };
 
-    std::vector<int> idx(moves.size());
-    for (int i = 0; i < moves.size(); i++)
-        idx[i] = i;
-
-    std::sort(idx.begin(), idx.end(), [&](const int &i, const int &j) { return score[i] > score[j]; });
-
-    std::vector<move> temp;
-    temp.reserve(moves.size());
-    for (int i = 0; i < moves.size(); i++)
-        temp.push_back(moves[idx[i]]);
-
-    for (int i = 0; i < moves.size(); i++)
-        moves[i] = temp[i];
+    std::sort(moves.begin(), moves.end(),
+              [&](const move &left, const move &right) { return score_move(left) > score_move(right); });
 }
 
 // minimax with alpha beta pruning upto specified depth along with caching (transposition table)
@@ -213,6 +197,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
         next_board.zhash ^= zobrist::rv_colour;
+        next_board.turn = next_turn;
 
         // simulate current move
         if (mv.castle_kside()) {
@@ -289,7 +274,8 @@ std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &t
     for (const move &mv : all_moves) {
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-        next_board.zhash = (turn == COLOUR::WHITE) ? next_board.zhash : next_board.zhash ^ zobrist::rv_colour;
+        next_board.zhash ^= zobrist::rv_colour;
+        next_board.turn = next_turn;
 
         // simulate current move
         if (mv.castle_kside()) {
@@ -328,40 +314,43 @@ template <typename rulebook>
 float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta) {
     if (turn == COLOUR::NONE)
         return 0;
-    std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
+    move_generator checker(b, turn);
+    const bool in_check = checker.is_in_check();
+    std::vector<move> all_moves = in_check ? rules.get_all_legal_moves(b, turn)
+                                           : rules.get_all_legal_tactical_moves(b, turn);
 
-    // if no moves
     if (all_moves.empty()) {
-        move_generator checker(b, turn);
-        // checkmate
-        if (checker.is_in_check()) {
-            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
-                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)];
-            return mate_eval;
+        if (in_check) {
+            return (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
+                                           : PIECE_VALUES[static_cast<int>(PIECE::KING)];
         }
-        // stalemate
-        else {
+        if (!rules.has_any_legal_move(b, turn))
             return 0.0f;
+        return base_eval(b);
+    }
+
+    // Standing pat is legal only outside check. In check, every legal evasion must be searched.
+    float best_eval = (turn == COLOUR::WHITE) ? -INF : INF;
+    if (!in_check) {
+        best_eval = base_eval(b);
+        if (turn == COLOUR::WHITE) {
+            if (best_eval >= beta)
+                return best_eval;
+            alpha = std::max(alpha, best_eval);
+        } else {
+            if (best_eval <= alpha)
+                return best_eval;
+            beta = std::min(beta, best_eval);
         }
     }
 
-    // It may be that all the capture moves in the current position are suboptimal.
-    // So, we must compare with the base_eval of the current position.
-    float best_eval = base_eval(b);
-    if (turn == COLOUR::WHITE)
-        alpha = std::max(alpha, best_eval);
-    else
-        beta = std::min(beta, best_eval);
-
-    bool no_capture_moves = true;
     order_moves(b, all_moves, move());
 
     for (const move &mv : all_moves) {
-        if (!mv.piece_captured())
-            continue;
-        no_capture_moves = false;
         board next_board = b;
         COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
+        next_board.zhash ^= zobrist::rv_colour;
+        next_board.turn = next_turn;
 
         if (mv.castle_kside()) {
             rules.castle_kside(next_board, turn);
@@ -387,10 +376,7 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
         if (beta <= alpha)
             break;
     }
-    if (no_capture_moves)
-        return base_eval(b);
-    else
-        return best_eval;
+    return best_eval;
 }
 
 template <typename rulebook> float engine<rulebook>::base_eval(const board &b) {
@@ -416,28 +402,6 @@ template <typename rulebook> float engine<rulebook>::base_eval(const board &b) {
     // b.print_board();
     return eval;
 }
-
-// template <typename rulebook>
-// bool engine<rulebook>::is_opp_in_check_after(const board &b, const COLOUR &turn, const move &mv) {
-//     if (turn == COLOUR::NONE)
-//         return false;
-
-//     board next_board = b;
-//     COLOUR next_turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-//     if (mv.castle_kside()) {
-//         rules.castle_kside(next_board, turn);
-//     } else if (mv.castle_qside()) {
-//         rules.castle_qside(next_board, turn);
-//     } else {
-//         next_board.apply_move(mv);
-//     }
-
-//     move_generator helper(next_board, next_turn);
-//     if (helper.is_in_check())
-//         return true;
-//     else
-//         return false;
-// }
 
 template <typename rulebook> int engine<rulebook>::get_depth_extension(const board &b, const COLOUR &turn) {
     if (turn == COLOUR::NONE)

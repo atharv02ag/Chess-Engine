@@ -110,15 +110,11 @@ template <typename rulebook> bool game<rulebook>::make_move(const move &move_to_
         return false;
     if (move_to_make.castle_kside()) {
         rules.castle_kside(chess_board, move_to_make.colour);
-        turn = chess_board.turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-        return true;
-    }
-    if (move_to_make.castle_qside()) {
+    } else if (move_to_make.castle_qside()) {
         rules.castle_qside(chess_board, move_to_make.colour);
-        turn = chess_board.turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;
-        return true;
+    } else {
+        chess_board.apply_move(move_to_make);
     }
-    chess_board.apply_move(move_to_make);
     rules.update_flags(chess_board, move_to_make);
 
     turn = chess_board.turn = (turn == COLOUR::WHITE) ? COLOUR::BLACK : COLOUR::WHITE;

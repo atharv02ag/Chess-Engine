@@ -15,8 +15,10 @@ class move_generator {
     std::vector<u64> get_knight_moves();
     u64 get_king_moves();
 
-    std::vector<move> get_pawn_moves();
+    std::vector<move> get_pawn_moves(bool tactical_only = false);
     std::vector<move> get_all_generic_moves();
+    std::vector<move> get_all_tactical_moves();
+    bool has_any_generic_move();
     bool is_sqr_attacked(const u64 &target_location);
     bool is_in_check();
     bool is_in_check_after(const move &mv);
@@ -36,4 +38,5 @@ class move_generator {
     bool is_attacked_by_queen(const u64 &target_location);
     bool is_attacked_by_knight(const u64 &target_location);
     bool is_attacked_by_king(const u64 &target_location);
+    std::vector<move> get_all_generic_moves_impl(bool tactical_only);
 };

@@ -16,7 +16,7 @@ int main() {
     // freopen("log.txt", "w", stdout);
     game<std_rules> g;
     engine<std_rules> e;
-    int depth = 6;
+    int depth = 8;
     g.show_board();
     auto tt_count = [&](){
         int ct = 0;

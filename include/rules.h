@@ -22,6 +22,12 @@ template <typename derived> class rules {
     std::vector<move> get_all_legal_moves(const board &chess_board, const COLOUR &turn) {
         return static_cast<derived *>(this)->get_all_legal_moves(chess_board, turn);
     }
+    std::vector<move> get_all_legal_tactical_moves(const board &chess_board, const COLOUR &turn) {
+        return static_cast<derived *>(this)->get_all_legal_tactical_moves(chess_board, turn);
+    }
+    bool has_any_legal_move(const board &chess_board, const COLOUR &turn) {
+        return static_cast<derived *>(this)->has_any_legal_move(chess_board, turn);
+    }
 };
 
 class std_rules : public rules<std_rules> {
@@ -99,11 +105,17 @@ class std_rules : public rules<std_rules> {
             return {};
         move_generator helper(chess_board, turn);
         std::vector<move> candidates;
+        const u64 occupied = chess_board.all_pieces();
         if (turn == COLOUR::WHITE) {
+            const u64 king_start = (1ULL << 4);
+            const u64 kside_rook_start = (1ULL << 7);
+            const u64 qside_rook_start = 1ULL;
             u64 rook_landing = (1ULL << 5);
             u64 king_landing = (1ULL << 6);
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)) &&
-                !(chess_board.all_white_pieces() & rook_landing) && !(chess_board.all_white_pieces() & king_landing) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::WHITE, PIECE::KING)] & king_start) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::WHITE, PIECE::ROOK)] & kside_rook_start) &&
+                !(occupied & rook_landing) && !(occupied & king_landing) &&
                 !helper.is_sqr_attacked(rook_landing) && !helper.is_sqr_attacked(king_landing) && !helper.is_in_check()) {
 
                 candidates.push_back(move(PIECE::KING, COLOUR::WHITE, true, false));
@@ -112,17 +124,24 @@ class std_rules : public rules<std_rules> {
             king_landing = (1ULL << 2);
             u64 other_square = (1ULL << 1);
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE)) &&
-                !(chess_board.all_white_pieces() & rook_landing) && !(chess_board.all_white_pieces() & king_landing) &&
-                !(chess_board.all_white_pieces() & other_square) && !helper.is_sqr_attacked(rook_landing) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::WHITE, PIECE::KING)] & king_start) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::WHITE, PIECE::ROOK)] & qside_rook_start) &&
+                !(occupied & rook_landing) && !(occupied & king_landing) &&
+                !(occupied & other_square) && !helper.is_sqr_attacked(rook_landing) &&
                 !helper.is_sqr_attacked(king_landing) && !helper.is_in_check()) {
 
                 candidates.push_back(move(PIECE::KING, COLOUR::WHITE, false, true));
             }
         } else {
+            const u64 king_start = (1ULL << (8 * 7) << 4);
+            const u64 kside_rook_start = (1ULL << (8 * 7) << 7);
+            const u64 qside_rook_start = (1ULL << (8 * 7));
             u64 rook_landing = (1ULL << (8 * 7) << 5);
             u64 king_landing = (1ULL << (8 * 7) << 6);
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK)) &&
-                !(chess_board.all_black_pieces() & rook_landing) && !(chess_board.all_black_pieces() & king_landing) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::BLACK, PIECE::KING)] & king_start) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::BLACK, PIECE::ROOK)] & kside_rook_start) &&
+                !(occupied & rook_landing) && !(occupied & king_landing) &&
                 !helper.is_sqr_attacked(rook_landing) && !helper.is_sqr_attacked(king_landing) && !helper.is_in_check()) {
 
                 candidates.push_back(move(PIECE::KING, COLOUR::BLACK, true, false));
@@ -131,8 +150,10 @@ class std_rules : public rules<std_rules> {
             king_landing = (1ULL << (8 * 7) << 2);
             u64 other_sqaure = (1ULL << (8 * 7) << 1);
             if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK)) &&
-                !(chess_board.all_black_pieces() & rook_landing) && !(chess_board.all_black_pieces() & king_landing) &&
-                !(chess_board.all_black_pieces() & other_sqaure) && !helper.is_sqr_attacked(rook_landing) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::BLACK, PIECE::KING)] & king_start) &&
+                (chess_board.pieces[get_piece_idx(COLOUR::BLACK, PIECE::ROOK)] & qside_rook_start) &&
+                !(occupied & rook_landing) && !(occupied & king_landing) &&
+                !(occupied & other_sqaure) && !helper.is_sqr_attacked(rook_landing) &&
                 !helper.is_sqr_attacked(king_landing) && !helper.is_in_check()) {
 
                 candidates.push_back(move(PIECE::KING, COLOUR::BLACK, false, true));
@@ -150,57 +171,71 @@ class std_rules : public rules<std_rules> {
         std::vector<move> castling_moves = get_castling_moves(chess_board, turn);
         if (castling_moves.empty())
             return generic_moves;
-        std::vector<move> result;
-        for (auto &m : generic_moves) {
-            result.push_back(std::move(m));
-        }
+        generic_moves.reserve(generic_moves.size() + castling_moves.size());
         for (auto &m : castling_moves) {
-            result.push_back(std::move(m));
+            generic_moves.push_back(std::move(m));
         }
-        return result;
+        return generic_moves;
+    }
+
+    std::vector<move> get_all_legal_tactical_moves(const board &chess_board, const COLOUR &turn) {
+        if (turn == COLOUR::NONE)
+            return {};
+        move_generator generator(chess_board, turn);
+        return generator.get_all_tactical_moves();
+    }
+
+    bool has_any_legal_move(const board &chess_board, const COLOUR &turn) {
+        if (turn == COLOUR::NONE)
+            return false;
+        move_generator generator(chess_board, turn);
+        if (generator.has_any_generic_move())
+            return true;
+        return !get_castling_moves(chess_board, turn).empty();
     }
 
   private:
     void update_castling_flags(board &chess_board, const move &move_made) {
         if (move_made.colour == COLOUR::NONE)
             return;
+
+        auto clear_right = [&](FLAGS right) {
+            const u32 mask = static_cast<u32>(right);
+            if (chess_board.flags & mask) {
+                chess_board.flags &= ~mask;
+                chess_board.zhash ^= zobrist::rv_flags[lsb(mask)];
+            }
+        };
+
+        // Castling rights are also lost when a rook is captured on its original square.
+        if (move_made.piece_captured()) {
+            if (move_made.end_location == 1ULL)
+                clear_right(FLAGS::CASTLE_QSIDE_WHITE);
+            else if (move_made.end_location == (1ULL << 7))
+                clear_right(FLAGS::CASTLE_KSIDE_WHITE);
+            else if (move_made.end_location == (1ULL << (8 * 7)))
+                clear_right(FLAGS::CASTLE_QSIDE_BLACK);
+            else if (move_made.end_location == (1ULL << (8 * 7) << 7))
+                clear_right(FLAGS::CASTLE_KSIDE_BLACK);
+        }
+
         if (move_made.colour == COLOUR::WHITE) {
-            if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)) && move_made.piece == PIECE::ROOK &&
-                move_made.start_location == (1ULL << 7)) {
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE))];
-            }
-            if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE)) && move_made.piece == PIECE::ROOK &&
-                move_made.start_location == 1ULL) {
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))];
-            }
-            if (((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE)) ||
-                 (chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))) &&
-                move_made.piece == PIECE::KING) {
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE);
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE);
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_WHITE))];
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_WHITE))];
+            if (move_made.piece == PIECE::ROOK && move_made.start_location == (1ULL << 7))
+                clear_right(FLAGS::CASTLE_KSIDE_WHITE);
+            if (move_made.piece == PIECE::ROOK && move_made.start_location == 1ULL)
+                clear_right(FLAGS::CASTLE_QSIDE_WHITE);
+            if (move_made.piece == PIECE::KING) {
+                clear_right(FLAGS::CASTLE_KSIDE_WHITE);
+                clear_right(FLAGS::CASTLE_QSIDE_WHITE);
             }
         } else {
-            if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK)) && move_made.piece == PIECE::ROOK &&
-                move_made.start_location == (1ULL << (8 * 7) << 7)) {
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK))];
-            }
-            if ((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK)) && move_made.piece == PIECE::ROOK &&
-                move_made.start_location == (1ULL << (8 * 7))) {
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))];
-            }
-            if (((chess_board.flags & static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK)) ||
-                 (chess_board.flags & static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))) &&
-                move_made.piece == PIECE::KING) {
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK);
-                chess_board.flags &= ~static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK);
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_KSIDE_BLACK))];
-                chess_board.zhash ^= zobrist::rv_flags[lsb(static_cast<u32>(FLAGS::CASTLE_QSIDE_BLACK))];
+            if (move_made.piece == PIECE::ROOK && move_made.start_location == (1ULL << (8 * 7) << 7))
+                clear_right(FLAGS::CASTLE_KSIDE_BLACK);
+            if (move_made.piece == PIECE::ROOK && move_made.start_location == (1ULL << (8 * 7)))
+                clear_right(FLAGS::CASTLE_QSIDE_BLACK);
+            if (move_made.piece == PIECE::KING) {
+                clear_right(FLAGS::CASTLE_KSIDE_BLACK);
+                clear_right(FLAGS::CASTLE_QSIDE_BLACK);
             }
         }
     }
