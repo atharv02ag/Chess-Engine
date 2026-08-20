@@ -102,7 +102,8 @@ template <typename rulebook> move game<rulebook>::parse_move(const std::string &
 
 template <typename rulebook> bool game<rulebook>::make_move(const move &move_to_make) {
 
-    if (move_to_make.colour == COLOUR::NONE || move_to_make.piece == PIECE::EMPTY || move_to_make.colour != turn)
+    if (move_to_make.colour() == COLOUR::NONE || move_to_make.piece() == PIECE::EMPTY ||
+        move_to_make.colour() != turn)
         return false;
 
     std::vector<move> all_legal_moves = rules.get_all_legal_moves(chess_board, turn);
@@ -115,9 +116,9 @@ template <typename rulebook> bool game<rulebook>::make_move(const move &move_to_
     if (!found)
         return false;
     if (move_to_make.castle_kside()) {
-        rules.castle_kside(chess_board, move_to_make.colour);
+        rules.castle_kside(chess_board, move_to_make.colour());
     } else if (move_to_make.castle_qside()) {
-        rules.castle_qside(chess_board, move_to_make.colour);
+        rules.castle_qside(chess_board, move_to_make.colour());
     } else {
         chess_board.apply_move(move_to_make);
     }

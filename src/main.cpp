@@ -52,11 +52,11 @@ std::string move_text(const move &mv) {
         return "O-O";
     if (mv.castle_qside())
         return "O-O-O";
-    if (!mv.start_location || !mv.end_location)
+    if (!mv.has_coordinates())
         return "(none)";
 
-    const int start = lsb(mv.start_location);
-    const int end = lsb(mv.end_location);
+    const int start = mv.start_square();
+    const int end = mv.end_square();
     std::string result;
     result += static_cast<char>('a' + start % 8);
     result += static_cast<char>('1' + start / 8);

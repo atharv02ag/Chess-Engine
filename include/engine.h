@@ -120,8 +120,8 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
             score += 10 * PIECE_VALUES[static_cast<int>(mv.promotion_piece())];
         }
         if (mv.piece_captured()) {
-            auto [end_piece_colour, end_piece] = b.get_piece(mv.end_location);
-            score += 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(mv.piece)];
+            auto [end_piece_colour, end_piece] = b.get_piece(mv.end_location());
+            score += 10 * PIECE_VALUES[static_cast<int>(end_piece)] - PIECE_VALUES[static_cast<int>(mv.piece())];
         }
         if (first_to_try == mv)
             score += 50;
@@ -145,31 +145,31 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     float alpha_orig = alpha;
     float beta_orig = beta;
 
-    tt_entry entry = table.probe(b.zhash);
-    if (entry.zkey == b.zhash && entry.depth >= depth) {
+    const tt_entry *entry = table.probe(b.zhash);
+    if (entry != nullptr && entry->depth >= depth) {
         tt_hits++;
-        switch (entry.node_type) {
+        switch (entry->node_type) {
         case TT_FLAG::EXACT:
-            return std::pair{entry.best_move, entry.eval};
+            return std::pair{entry->best_move, entry->eval};
             break;
         case TT_FLAG::LOWER_BOUND:
-            alpha = std::max(alpha, entry.eval);
+            alpha = std::max(alpha, entry->eval);
             break;
         case TT_FLAG::UPPER_BOUND:
-            beta = std::min(beta, entry.eval);
+            beta = std::min(beta, entry->eval);
             break;
         default:
             break;
         }
 
         if (alpha >= beta) {
-            return {entry.best_move, entry.eval};
+            return {entry->best_move, entry->eval};
         }
     }
 
     move first_move_to_try;
-    if(entry.zkey == b.zhash && entry.depth >= depth){
-        first_move_to_try = entry.best_move;
+    if (entry != nullptr && entry->depth >= depth) {
+        first_move_to_try = entry->best_move;
     }
 
     std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
@@ -238,7 +238,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     } else if (best_move.second <= alpha_orig) {
         flag = TT_FLAG::UPPER_BOUND;
     }
-    table.insert(tt_entry(b.zhash, depth, best_move.second, best_move.first, table.tt_generation, flag));
+    table.insert(b.zhash, depth, best_move.second, best_move.first, flag);
     return best_move;
 }
 

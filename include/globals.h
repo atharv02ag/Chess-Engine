@@ -17,7 +17,6 @@ using std::cout;
 using std::endl;
 
 inline constexpr float INF = 100000000.0f;
-inline constexpr int TT_SIZE = 1 << 25;
 
 inline constexpr std::array<std::string_view, 3> colour_names = {"WHITE", "BLACK", "NONE"};
 inline constexpr std::array<std::string_view, 7> piece_names = {"EMPTY",  "PAWN", "ROOK", "KNIGHT",
@@ -263,7 +262,7 @@ enum class MOVE_FLAGS : u32 {
     PROMOTE_KNIGHT = 1 << 7,
 };
 
-enum class TT_FLAG { EXACT, LOWER_BOUND, UPPER_BOUND };
+enum class TT_FLAG : std::uint8_t { EXACT, LOWER_BOUND, UPPER_BOUND };
 
 inline int lsb(const u64 &num) { return __builtin_ctzll(num); }
 inline int msb(const u64 &num) { return 63 - __builtin_clzll(num); }

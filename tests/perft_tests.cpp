@@ -19,14 +19,14 @@ COLOUR opposite(COLOUR colour) {
 }
 
 void apply_move(board &position, const move &mv, std_rules &rules) {
-    const COLOUR next_turn = opposite(mv.colour);
+    const COLOUR next_turn = opposite(mv.colour());
     position.zhash ^= zobrist::rv_colour;
     position.turn = next_turn;
 
     if (mv.castle_kside())
-        rules.castle_kside(position, mv.colour);
+        rules.castle_kside(position, mv.colour());
     else if (mv.castle_qside())
-        rules.castle_qside(position, mv.colour);
+        rules.castle_qside(position, mv.colour());
     else
         position.apply_move(mv);
 
@@ -76,6 +76,44 @@ void expect_near(const std::string &name, float actual, float expected, float to
     }
     ++failures;
     std::cerr << "[FAIL] " << name << ": expected " << expected << ", got " << actual << '\n';
+}
+
+void run_move_packing_tests() {
+    expect_equal("packed move size", sizeof(move), std::size_t{4});
+
+    // White pawn e7xd8=Q: from=52, to=59, piece=1, colour=0,
+    // flags=CAPTURE|PROMOTE_QUEEN, coordinates-present=1.
+    const move promotion_capture(PIECE::PAWN, COLOUR::WHITE, 1ULL << 52, 1ULL << 59, true, PIECE::QUEEN);
+    const u32 expected = 52U | (59U << 6) | (1U << 12) |
+                         ((static_cast<u32>(MOVE_FLAGS::CAPTURE) |
+                           static_cast<u32>(MOVE_FLAGS::PROMOTE_QUEEN))
+                          << 17) |
+                         (1U << 25);
+    expect_equal("packed move bit layout", promotion_capture.packed(), expected);
+    expect_equal("packed source square", promotion_capture.start_square(), 52);
+    expect_equal("packed destination square", promotion_capture.end_square(), 59);
+    expect_true("packed piece", promotion_capture.piece() == PIECE::PAWN);
+    expect_true("packed colour", promotion_capture.colour() == COLOUR::WHITE);
+    expect_true("packed capture flag", promotion_capture.piece_captured());
+    expect_true("packed promotion flag", promotion_capture.promotion_piece() == PIECE::QUEEN);
+
+    const move unpacked = move::unpack(promotion_capture.packed());
+    expect_true("packed move round trip", unpacked == promotion_capture);
+    expect_equal("packed source bitboard round trip", unpacked.start_location(), 1ULL << 52);
+    expect_equal("packed destination bitboard round trip", unpacked.end_location(), 1ULL << 59);
+
+    const move black_queenside_castle(PIECE::KING, COLOUR::BLACK, false, true);
+    expect_true("packed castle flag", black_queenside_castle.castle_qside());
+    expect_equal("packed castle source", black_queenside_castle.start_square(), 60);
+    expect_equal("packed castle destination", black_queenside_castle.end_square(), 58);
+    expect_true("packed castle round trip",
+                move::unpack(black_queenside_castle.packed()) == black_queenside_castle);
+
+    const move empty;
+    expect_true("empty packed move piece", empty.piece() == PIECE::EMPTY);
+    expect_true("empty packed move colour", empty.colour() == COLOUR::NONE);
+    expect_equal("empty packed move source bitboard", empty.start_location(), 0ULL);
+    expect_equal("empty packed move destination bitboard", empty.end_location(), 0ULL);
 }
 
 bool contains_kingside_castle(const std::vector<move> &moves) {
@@ -211,6 +249,7 @@ void run_quiescence_tests() {
 } // namespace
 
 int main() {
+    run_move_packing_tests();
     run_perft_tests();
     run_hash_tests();
     run_castling_tests();

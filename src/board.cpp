@@ -194,12 +194,12 @@ std::pair<COLOUR, PIECE> board::get_piece(const u64 &location) const {
 // ASSUMPTION : the colour and piece returned by get_piece() is the same corresponding to move_to_make
 
 void board::apply_move(const move &move_to_make) {
-    if (move_to_make.colour == COLOUR::NONE || move_to_make.piece == PIECE::EMPTY) {
+    if (move_to_make.colour() == COLOUR::NONE || move_to_make.piece() == PIECE::EMPTY) {
         cout << "board::apply_move : invalid move" << endl;
         return;
     }
 
-    if (!move_to_make.start_location || !move_to_make.end_location) {
+    if (!move_to_make.has_coordinates()) {
         cout << "board::apply_move : invalid locations" << endl;
         move_to_make.print_move();
         print_board();
@@ -207,22 +207,22 @@ void board::apply_move(const move &move_to_make) {
 
     // enpassant move captures the pawn behind the target square
     if (move_to_make.enpass()) {
-        if (move_to_make.colour == COLOUR::WHITE) {
-            u64 captured_pawn_location = move_to_make.end_location >> 8;
+        if (move_to_make.colour() == COLOUR::WHITE) {
+            u64 captured_pawn_location = move_to_make.end_location() >> 8;
             set_piece(captured_pawn_location, PIECE::EMPTY, COLOUR::NONE);
         } else {
-            u64 captured_pawn_location = move_to_make.end_location << 8;
+            u64 captured_pawn_location = move_to_make.end_location() << 8;
             set_piece(captured_pawn_location, PIECE::EMPTY, COLOUR::NONE);
         }
     }
 
-    set_piece(move_to_make.start_location, PIECE::EMPTY, COLOUR::NONE);
-    set_piece(move_to_make.end_location, PIECE::EMPTY, COLOUR::NONE);
+    set_piece(move_to_make.start_location(), PIECE::EMPTY, COLOUR::NONE);
+    set_piece(move_to_make.end_location(), PIECE::EMPTY, COLOUR::NONE);
     
     if (move_to_make.promotion_piece() != PIECE::EMPTY)
-        set_piece(move_to_make.end_location, move_to_make.promotion_piece(), move_to_make.colour);
+        set_piece(move_to_make.end_location(), move_to_make.promotion_piece(), move_to_make.colour());
     else
-        set_piece(move_to_make.end_location, move_to_make.piece, move_to_make.colour);
+        set_piece(move_to_make.end_location(), move_to_make.piece(), move_to_make.colour());
 }
 
 void board::print_board(COLOUR perspective) const {

@@ -38,7 +38,7 @@ class std_rules : public rules<std_rules> {
     }
 
     void update_flags(board &chess_board, const move &move_made) {
-        if (move_made.colour == COLOUR::NONE)
+        if (move_made.colour() == COLOUR::NONE)
             return;
         update_castling_flags(chess_board, move_made);
         update_enpass_square(chess_board, move_made);
@@ -196,7 +196,7 @@ class std_rules : public rules<std_rules> {
 
   private:
     void update_castling_flags(board &chess_board, const move &move_made) {
-        if (move_made.colour == COLOUR::NONE)
+        if (move_made.colour() == COLOUR::NONE)
             return;
 
         auto clear_right = [&](FLAGS right) {
@@ -209,31 +209,31 @@ class std_rules : public rules<std_rules> {
 
         // Castling rights are also lost when a rook is captured on its original square.
         if (move_made.piece_captured()) {
-            if (move_made.end_location == 1ULL)
+            if (move_made.end_location() == 1ULL)
                 clear_right(FLAGS::CASTLE_QSIDE_WHITE);
-            else if (move_made.end_location == (1ULL << 7))
+            else if (move_made.end_location() == (1ULL << 7))
                 clear_right(FLAGS::CASTLE_KSIDE_WHITE);
-            else if (move_made.end_location == (1ULL << (8 * 7)))
+            else if (move_made.end_location() == (1ULL << (8 * 7)))
                 clear_right(FLAGS::CASTLE_QSIDE_BLACK);
-            else if (move_made.end_location == (1ULL << (8 * 7) << 7))
+            else if (move_made.end_location() == (1ULL << (8 * 7) << 7))
                 clear_right(FLAGS::CASTLE_KSIDE_BLACK);
         }
 
-        if (move_made.colour == COLOUR::WHITE) {
-            if (move_made.piece == PIECE::ROOK && move_made.start_location == (1ULL << 7))
+        if (move_made.colour() == COLOUR::WHITE) {
+            if (move_made.piece() == PIECE::ROOK && move_made.start_location() == (1ULL << 7))
                 clear_right(FLAGS::CASTLE_KSIDE_WHITE);
-            if (move_made.piece == PIECE::ROOK && move_made.start_location == 1ULL)
+            if (move_made.piece() == PIECE::ROOK && move_made.start_location() == 1ULL)
                 clear_right(FLAGS::CASTLE_QSIDE_WHITE);
-            if (move_made.piece == PIECE::KING) {
+            if (move_made.piece() == PIECE::KING) {
                 clear_right(FLAGS::CASTLE_KSIDE_WHITE);
                 clear_right(FLAGS::CASTLE_QSIDE_WHITE);
             }
         } else {
-            if (move_made.piece == PIECE::ROOK && move_made.start_location == (1ULL << (8 * 7) << 7))
+            if (move_made.piece() == PIECE::ROOK && move_made.start_location() == (1ULL << (8 * 7) << 7))
                 clear_right(FLAGS::CASTLE_KSIDE_BLACK);
-            if (move_made.piece == PIECE::ROOK && move_made.start_location == (1ULL << (8 * 7)))
+            if (move_made.piece() == PIECE::ROOK && move_made.start_location() == (1ULL << (8 * 7)))
                 clear_right(FLAGS::CASTLE_QSIDE_BLACK);
-            if (move_made.piece == PIECE::KING) {
+            if (move_made.piece() == PIECE::KING) {
                 clear_right(FLAGS::CASTLE_KSIDE_BLACK);
                 clear_right(FLAGS::CASTLE_QSIDE_BLACK);
             }
@@ -245,21 +245,21 @@ class std_rules : public rules<std_rules> {
             int enpass_idx = lsb(chess_board.enpass_capture_square)%8 + 8 * (lsb(chess_board.enpass_capture_square)/8 <= 2);
             chess_board.zhash ^= zobrist::rv_enpass[enpass_idx];
         }
-        if(move_made.colour == COLOUR::NONE || move_made.piece != PIECE::PAWN){
+        if(move_made.colour() == COLOUR::NONE || move_made.piece() != PIECE::PAWN){
             chess_board.enpass_capture_square = 0ULL;
             return;
         }
-        if(move_made.colour == COLOUR::WHITE){
-            if(lsb(move_made.start_location)/8 == 1 && lsb(move_made.end_location)/8 == 3){
-                chess_board.enpass_capture_square = move_made.start_location << 8;
+        if(move_made.colour() == COLOUR::WHITE){
+            if(move_made.start_square()/8 == 1 && move_made.end_square()/8 == 3){
+                chess_board.enpass_capture_square = move_made.start_location() << 8;
                 int enpass_idx = lsb(chess_board.enpass_capture_square)%8 + 8 * (lsb(chess_board.enpass_capture_square)/8 <= 2);
                 chess_board.zhash ^= zobrist::rv_enpass[enpass_idx];
                 return;
             }
         }
         else{
-            if(lsb(move_made.start_location)/8 == 6 && lsb(move_made.end_location)/8 == 4){
-                chess_board.enpass_capture_square = move_made.start_location >> 8;
+            if(move_made.start_square()/8 == 6 && move_made.end_square()/8 == 4){
+                chess_board.enpass_capture_square = move_made.start_location() >> 8;
                 int enpass_idx = lsb(chess_board.enpass_capture_square)%8 + 8 * (lsb(chess_board.enpass_capture_square)/8 <= 2);
                 chess_board.zhash ^= zobrist::rv_enpass[enpass_idx];
                 return;
