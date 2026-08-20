@@ -96,7 +96,7 @@ On a later lookup, an exact value can be returned immediately. A lower bound rai
 
 ## Performance
 
-The engine can solve basic tactical puzzles and identify checkmating sequences. It can search to approximately depth 7 at usable speeds, typically around 10-20 seconds per move, although the exact time depends on the position and hardware. More systematic benchmarking and an estimated Elo rating are still future work, but it plays reasonably well in casual games against me!
+The engine can solve basic tactical puzzles and identify checkmating sequences. It can search to approximately depth 7 at usable speeds, typically around 10-30 seconds per move, although the exact time depends on the position and hardware. More systematic benchmarking and an estimated Elo rating are still future work, but it is able to beat upto stockfish 6, hence its rating should be around **1900**
 
 ## Build and run
 
