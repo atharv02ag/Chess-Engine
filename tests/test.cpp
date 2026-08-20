@@ -72,7 +72,7 @@ int main() {
         engine<std_rules> search;
 
         const auto started = std::chrono::steady_clock::now();
-        const auto [actual, evaluation] = search.minimax_tt(position.chess_board, position.turn, depth, -INF, INF);
+        const auto [actual, evaluation] = search.minimax_tt_wrap(position.chess_board, position.turn, depth);
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
         const bool success = actual == expected;
         passed += success ? 1 : 0;

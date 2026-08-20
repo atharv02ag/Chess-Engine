@@ -6,41 +6,102 @@
 #include "../include/rules.h"
 #include "../include/tt.h"
 
-static constexpr std::array<float, 7> PIECE_VALUES = {0, 10, 50, 30, 30, 500, 90};
+static constexpr std::array<float, 7> PIECE_VALUES = {0, 10, 50, 30, 30, 100000, 90};
+static constexpr float MATE_SCORE = PIECE_VALUES[static_cast<int>(PIECE::KING)];
+static constexpr float MATE_TT_THRESHOLD = MATE_SCORE - 1000.0f;
 
-// piece square tables
+//Note: ply = distance from root node.
+
+// Mate scores produced by the search are relative to the root ply. Store them
+// relative to the current position so a transposition remains valid when the
+// same position is reached at a different ply.
+constexpr float score_to_tt(float score, int ply) {
+    if (score >= MATE_TT_THRESHOLD)
+        return score + ply;
+    if (score <= -MATE_TT_THRESHOLD)
+        return score - ply;
+    return score;
+}
+
+constexpr float score_from_tt(float score, int ply) {
+    if (score >= MATE_TT_THRESHOLD)
+        return score - ply;
+    if (score <= -MATE_TT_THRESHOLD)
+        return score + ply;
+    return score;
+}
+
+// Piece-square tables are indexed a1..h1, a2..h2, ... a8..h8.
+// Keeping one source row per rank makes each table read like a chessboard.
 static constexpr std::array<float, 64> knight_st = {
-    -5,  -4, -3, -3, -3,  -3,  -4,  -5,  -4, -2, 0,  0.5, 0.5, 0,   -2,  -4,  -3,  0.5, 1,  1.5, 1.5, 1,
-    0.5, -3, -3, 0,  1.5, 2.0, 2.0, 1.5, 0,  -3, -3, 0.5, 1.5, 2.0, 2.0, 1.5, 0.5, -3,  -3, 0,   1,   1.5,
-    1.5, 1,  0,  -3, -4,  -2,  0,   0,   0,  2,  -2, -4,  -5,  -4,  -3,  -3,  -3,  -3,  -4, -5};
+    -5, -4,   -3,   -3,   -3,   -3, -4, -5, // rank 1
+    -4, -2,    0,  0.5,  0.5,    0, -2, -4, // rank 2
+    -3, 0.5,   1,  1.5,  1.5,    1, 0.5, -3, // rank 3
+    -3,  0,   1.5,   2,    2,  1.5,  0, -3, // rank 4
+    -3, 0.5,  1.5,    2,    2,  1.5, 0.5, -3, // rank 5
+    -3,  0,     1,  1.5,  1.5,    1,  0, -3, // rank 6
+    -4, -2,     0,    0,    0,    2, -2, -4, // rank 7
+    -5, -4,    -3,   -3,   -3,   -3, -4, -5, // rank 8
+};
 
-static constexpr std::array<float, 64> bishop_st = {-2, -1, -1, -1, -1, -1, -1, -2, -1, 0.5, 0,  0,  0,  0,  0.5, -1,
-                                                    -1, 0,  1,  1,  1,  1,  0,  -1, -1, 0,   1,  2,  2,  1,  0,   -1,
-                                                    -1, 0,  1,  2,  2,  1,  0,  -1, -1, 1,   1,  2,  2,  1,  1,   -1,
-                                                    -1, 0,  0,  0,  0,  0,  0,  -1, -2, -1,  -1, -1, -1, -1, -1,  -2};
+static constexpr std::array<float, 64> bishop_st = {
+    -2,  -1, -1, -1, -1, -1,  -1, -2, // rank 1
+    -1, 0.5,  0,  0,  0,  0, 0.5, -1, // rank 2
+    -1,   0,  1,  1,  1,  1,   0, -1, // rank 3
+    -1,   0,  1,  2,  2,  1,   0, -1, // rank 4
+    -1,   0,  1,  2,  2,  1,   0, -1, // rank 5
+    -1,   1,  1,  2,  2,  1,   1, -1, // rank 6
+    -1,   0,  0,  0,  0,  0,   0, -1, // rank 7
+    -2,  -1, -1, -1, -1, -1,  -1, -2, // rank 8
+};
 
-static constexpr std::array<float, 64> rook_st = {0,    0, 0, 0.5, 0.5, 0, 0, 0,    -0.5, 0, 0, 0, 0, 0, 0, -0.5,
-                                                  -0.5, 0, 0, 0,   0,   0, 0, -0.5, -0.5, 0, 0, 0, 0, 0, 0, -0.5,
-                                                  -0.5, 0, 0, 0,   0,   0, 0, -0.5, -0.5, 0, 0, 0, 0, 0, 0, -0.5,
-                                                  0.5,  1, 1, 1,   1,   1, 1, 0.5,  0,    0, 0, 0, 0, 0, 0, 0};
+static constexpr std::array<float, 64> rook_st = {
+       0, 0, 0, 0.5, 0.5, 0, 0,    0, // rank 1
+    -0.5, 0, 0,   0,   0, 0, 0, -0.5, // rank 2
+    -0.5, 0, 0,   0,   0, 0, 0, -0.5, // rank 3
+    -0.5, 0, 0,   0,   0, 0, 0, -0.5, // rank 4
+    -0.5, 0, 0,   0,   0, 0, 0, -0.5, // rank 5
+    -0.5, 0, 0,   0,   0, 0, 0, -0.5, // rank 6
+     0.5, 1, 1,   1,   1, 1, 1,  0.5, // rank 7
+       0, 0, 0,   0,   0, 0, 0,    0, // rank 8
+};
 
 static constexpr std::array<float, 64> queen_st = {
-    -2,  -1,  -1,   -0.5, -0.5, -1,  -1,  -2,  -1, 0,    0, 0,  0,   0,   0,   -1,   -1,   0,    0.5, 0.5, 0.5, 0.5,
-    0,   -1,  -0.5, 0,    0.5,  0.5, 0.5, 0.5, 0,  -0.5, 0, 0,  0.5, 0.5, 0.5, 0.5,  0,    -0.5, -1,  0.5, 0.5, 0.5,
-    0.5, 0.5, 0,    -1,   -1,   0,   0,   0,   0,  0,    0, -1, -2,  -1,  -1,  -0.5, -0.5, -1,   -1,  -2};
+      -2,  -1,  -1, -0.5, -0.5,  -1,  -1,   -2, // rank 1
+      -1,   0,   0,    0,    0,   0,   0,   -1, // rank 2
+      -1,   0, 0.5,  0.5,  0.5, 0.5,   0,   -1, // rank 3
+    -0.5,   0, 0.5,  0.5,  0.5, 0.5,   0, -0.5, // rank 4
+       0,   0, 0.5,  0.5,  0.5, 0.5,   0, -0.5, // rank 5
+      -1, 0.5, 0.5,  0.5,  0.5, 0.5,   0,   -1, // rank 6
+      -1,   0,   0,    0,    0,   0,   0,   -1, // rank 7
+      -2,  -1,  -1, -0.5, -0.5,  -1,  -1,   -2, // rank 8
+};
 
-static constexpr std::array<float, 64> pawn_st = {0,   0,    0,  0,   0,   0,  0,    0,   0.5, 1, 1, -2, -2, 1, 1, 0.5,
-                                                  0.5, -0.5, -1, 0,   0,   -1, -0.5, 0.5, 0,   0, 0, 2,  2,  0, 0, 0,
-                                                  0.5, 0.5,  1,  2.5, 2.5, 1,  0.5,  0.5, 1,   1, 2, 3,  3,  2, 1, 1,
-                                                  5,   5,    5,  5,   5,   5,  5,    5,   0,   0, 0, 0,  0,  0, 0, 0};
+static constexpr std::array<float, 64> pawn_st = {
+      0,    0,  0,   0,   0,  0,    0,   0, // rank 1
+    0.5,    1,  1,  -2,  -2,  1,    1, 0.5, // rank 2
+    0.5, -0.5, -1,   0,   0, -1, -0.5, 0.5, // rank 3
+      0,    0,  0,   2,   2,  0,    0,   0, // rank 4
+    0.5,  0.5,  1, 2.5, 2.5,  1,  0.5, 0.5, // rank 5
+      1,    1,  2,   3,   3,  2,    1,   1, // rank 6
+      5,    5,  5,   5,   5,  5,    5,   5, // rank 7
+      0,    0,  0,   0,   0,  0,    0,   0, // rank 8
+};
 
-static constexpr std::array<float, 64> king_mg_st = {2,  3,  1,  0,  0,  1,  3,  2,  2,  2,  0,  0,  0,  0,  2,  2,
-                                                     -1, -2, -2, -2, -2, -2, -2, -1, -2, -3, -3, -4, -4, -3, -3, -2,
-                                                     -3, -4, -4, -5, -5, -4, -4, -3, -4, -5, -5, -6, -6, -5, -5, -4,
-                                                     -5, -6, -6, -7, -7, -6, -6, -5, -6, -7, -7, -8, -8, -7, -7, -6};
+static constexpr std::array<float, 64> king_mg_st = {
+     2,  3,  1,  0,  0,  1,  3,  2, // rank 1
+     2,  2,  0,  0,  0,  0,  2,  2, // rank 2
+    -1, -2, -2, -2, -2, -2, -2, -1, // rank 3
+    -2, -3, -3, -4, -4, -3, -3, -2, // rank 4
+    -3, -4, -4, -5, -5, -4, -4, -3, // rank 5
+    -4, -5, -5, -6, -6, -5, -5, -4, // rank 6
+    -5, -6, -6, -7, -7, -6, -6, -5, // rank 7
+    -6, -7, -7, -8, -8, -7, -7, -6, // rank 8
+};
 
-static constexpr std::array<std::array<float, 64>, 6> pst = {pawn_st,   rook_st,    knight_st,
-                                                             bishop_st, king_mg_st, queen_st};
+static constexpr std::array<std::array<float, 64>, 6> pst = {
+    pawn_st, rook_st, knight_st, bishop_st, king_mg_st, queen_st,
+};
 
 /*
 MINI-MAX SEARCH : Suppose currently, we are processing white's possible moves. Then among all the subtrees of
@@ -101,12 +162,12 @@ template <typename rulebook> class engine {
     u32 tt_hits = 0;
 
     void order_moves(const board &b, std::vector<move> &moves, const move& first_to_try);
-    std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
-    std::pair<move, float> minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
-    float base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta);
+    std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply);
+    std::pair<move, float> minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply);
+    std::pair<move, float> minimax_tt_wrap(const board& b, const COLOUR& turn, int depth);
+    float base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply = 0);
     float base_eval(const board &b);
     int get_depth_extension(const board &b, const COLOUR &turn);
-    // bool is_opp_in_check_after(const board &b, const COLOUR &turn, const move &mv);
 };
 
 template <typename rulebook> void engine<rulebook>::order_moves(const board &b, std::vector<move> &moves, const move& first_to_try) {
@@ -133,11 +194,17 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
               [&](const move &left, const move &right) { return score_move(left) > score_move(right); });
 }
 
+// Callable wrapper for minimax_tt
+template <typename rulebook>
+std::pair<move, float> engine<rulebook>::minimax_tt_wrap(const board& b, const COLOUR&  turn, int depth){
+    return minimax_tt(b, turn, depth, -INF, INF, 0);
+}
+
 // minimax with alpha beta pruning upto specified depth along with caching (transposition table)
 // returns current evaluation of the position, and the best move.
 template <typename rulebook>
 std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha,
-                                                    float beta) {
+                                                    float beta, int ply) {
     if (turn == COLOUR::NONE)
         return {move(), 0.0f};
 
@@ -148,22 +215,23 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     const tt_entry *entry = table.probe(b.zhash);
     if (entry != nullptr && entry->depth >= depth) {
         tt_hits++;
+        const float tt_eval = score_from_tt(entry->eval, ply);
         switch (entry->node_type) {
         case TT_FLAG::EXACT:
-            return std::pair{entry->best_move, entry->eval};
+            return std::pair{entry->best_move, tt_eval};
             break;
         case TT_FLAG::LOWER_BOUND:
-            alpha = std::max(alpha, entry->eval);
+            alpha = std::max(alpha, tt_eval);
             break;
         case TT_FLAG::UPPER_BOUND:
-            beta = std::min(beta, entry->eval);
+            beta = std::min(beta, tt_eval);
             break;
         default:
             break;
         }
 
         if (alpha >= beta) {
-            return {entry->best_move, entry->eval};
+            return {entry->best_move, tt_eval};
         }
     }
 
@@ -180,8 +248,8 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
 
         // checkmate
         if (checker.is_in_check()) {
-            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
-                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)];
+            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)] + ply
+                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)] - ply;
             return {move(), mate_eval};
         }
         // stalemate
@@ -215,9 +283,9 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
         float cur_evaluation = 0.0f;
         int depth_extension = get_depth_extension(next_board, next_turn);
         if (depth + depth_extension == 1)
-            cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta);
+            cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta, ply+1);
         else {
-            auto temp = minimax_tt(next_board, next_turn, depth - 1 + depth_extension, alpha, beta);
+            auto temp = minimax_tt(next_board, next_turn, depth - 1 + depth_extension, alpha, beta, ply+1);
             cur_evaluation = temp.second;
         }
 
@@ -238,7 +306,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     } else if (best_move.second <= alpha_orig) {
         flag = TT_FLAG::UPPER_BOUND;
     }
-    table.insert(b.zhash, depth, best_move.second, best_move.first, flag);
+    table.insert(b.zhash, depth, score_to_tt(best_move.second, ply), best_move.first, flag);
     return best_move;
 }
 
@@ -246,7 +314,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
 // returns current evaluation of the position, and the best move.
 template <typename rulebook>
 std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &turn, int depth, float alpha,
-                                                 float beta) {
+                                                 float beta, int ply) {
     if (turn == COLOUR::NONE)
         return {move(), 0.0f};
 
@@ -258,8 +326,8 @@ std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &t
 
         // checkmate
         if (checker.is_in_check()) {
-            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
-                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)];
+            float mate_eval = (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)] + ply
+                                                      : PIECE_VALUES[static_cast<int>(PIECE::KING)] - ply;
             return {move(), mate_eval};
         }
         // stalemate
@@ -291,9 +359,9 @@ std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &t
 
         float cur_evaluation = 0.0f;
         if (depth == 1)
-            cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta);
+            cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta, ply+1);
         else {
-            auto temp = minimax(next_board, next_turn, depth - 1, alpha, beta);
+            auto temp = minimax(next_board, next_turn, depth - 1, alpha, beta, ply+1);
             cur_evaluation = temp.second;
         }
 
@@ -310,8 +378,9 @@ std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &t
     return best_move;
 }
 
+//Quiescent search
 template <typename rulebook>
-float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta) {
+float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply) {
     if (turn == COLOUR::NONE)
         return 0;
     move_generator checker(b, turn);
@@ -321,8 +390,8 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
 
     if (all_moves.empty()) {
         if (in_check) {
-            return (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)]
-                                           : PIECE_VALUES[static_cast<int>(PIECE::KING)];
+            return (turn == COLOUR::WHITE) ? -PIECE_VALUES[static_cast<int>(PIECE::KING)] + ply
+                                           : PIECE_VALUES[static_cast<int>(PIECE::KING)] - ply;
         }
         if (!rules.has_any_legal_move(b, turn))
             return 0.0f;
@@ -365,7 +434,7 @@ float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, in
         // mv.print_move();
         // b.print_board();
 
-        float cur_evaluation = base_case_minimax(next_board, next_turn, depth - 1, alpha, beta);
+        float cur_evaluation = base_case_minimax(next_board, next_turn, depth - 1, alpha, beta, ply+1);
         if (turn == COLOUR::WHITE && cur_evaluation > best_eval) {
             best_eval = cur_evaluation;
             alpha = std::max(alpha, cur_evaluation);

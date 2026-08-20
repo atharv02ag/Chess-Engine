@@ -161,7 +161,7 @@ int main() {
             chess_engine.tt_hits = 0;
             const auto started = std::chrono::steady_clock::now();
             const auto [best_move, evaluation] =
-                chess_engine.minimax_tt(game_state.chess_board, game_state.turn, depth, -INF, INF);
+                chess_engine.minimax_tt_wrap(game_state.chess_board, game_state.turn, depth);
             const double seconds =
                 std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
             std::cout << "\rEngine: " << move_text(best_move) << "  eval: " << std::fixed

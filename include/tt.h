@@ -13,7 +13,7 @@ struct tt_entry {
     move best_move{};
     std::int8_t depth = -1;
     TT_FLAG node_type = TT_FLAG::EXACT;
-    std::uint16_t generation = 0;
+    u16 generation = 0;
 };
 
 struct tt_bucket {
@@ -22,7 +22,7 @@ struct tt_bucket {
 
 class tt {
   public:
-    std::uint16_t tt_generation = 1;
+    u16 tt_generation = 1;
     std::vector<tt_bucket> container;
 
     tt();

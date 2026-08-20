@@ -62,7 +62,7 @@ void tt::insert(u64 hash, int depth, float eval, const move &best_move, TT_FLAG 
 }
 
 void tt::clear() {
-    if (tt_generation == std::numeric_limits<std::uint16_t>::max()) {
+    if (tt_generation == std::numeric_limits<u16>::max()) {
         std::fill(container.begin(), container.end(), tt_bucket{});
         tt_generation = 1;
         return;
