@@ -157,8 +157,7 @@ int main() {
 
         if (game_state.turn == engine_side) {
             std::cout << "Engine is thinking..." << std::flush;
-            chess_engine.nodes_seen = 0;
-            chess_engine.tt_hits = 0;
+            chess_engine.reset_search_stats();
             const auto started = std::chrono::steady_clock::now();
             const auto [best_move, evaluation] =
                 chess_engine.minimax_tt_wrap(game_state.chess_board, game_state.turn, depth);

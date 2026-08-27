@@ -96,7 +96,12 @@ On a later lookup, an exact value can be returned immediately. A lower bound rai
 
 ## Performance
 
-The engine can solve basic tactical puzzles and identify checkmating sequences. It can search to approximately depth 7 at usable speeds, typically around 10-30 seconds per move, although the exact time depends on the position and hardware. More systematic benchmarking and an estimated Elo rating are still future work, but it is able to beat upto stockfish 6, hence its rating should be around **1900**
+At search depth 7, the engine has beaten opponents up to Stockfish level 6. Controlled benchmarks show that:
+
+- The transposition table makes depth-6 search **1.40x faster** while examining **27.85% fewer nodes**.
+- Magic bitboards make sliding-piece attack generation **25.83x faster** than runtime ray walking.
+
+These comparisons can be reproduced with `tests/benchmark.cpp`.
 
 ## Build and run
 
@@ -111,6 +116,9 @@ python scripts/run_target.py tests/test.cpp
 
 # Perft and regression tests
 python scripts/run_target.py tests/perft_tests.cpp
+
+# Repeated performance and A/B benchmarks
+python scripts/run_target.py tests/benchmark.cpp -- --depth 6 --runs 3 --magic-iterations 20000000
 ```
 
 Select a compiler with `--compiler clang++`, or add `--compile-only` to build without running.

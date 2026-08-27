@@ -158,17 +158,30 @@ template <typename rulebook> class engine {
   public:
     rulebook rules;
     tt table;
-    u32 nodes_seen = 0;
-    u32 tt_hits = 0;
+    u64 nodes_seen = 0;
+    u64 qnodes_seen = 0;
+    u64 tt_probes = 0;
+    u64 tt_hits = 0;
+    u64 tt_cutoffs = 0;
 
-    void order_moves(const board &b, std::vector<move> &moves, const move& first_to_try);
+    void reset_search_stats();
+    void order_moves(const board &b, std::vector<move> &moves, const move& first_to_try = move());
     std::pair<move, float> minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply);
-    std::pair<move, float> minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply);
-    std::pair<move, float> minimax_tt_wrap(const board& b, const COLOUR& turn, int depth);
+    std::pair<move, float> minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply,
+                                     bool use_tt = true);
+    std::pair<move, float> minimax_tt_wrap(const board& b, const COLOUR& turn, int depth, bool use_tt = true);
     float base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply = 0);
     float base_eval(const board &b);
     int get_depth_extension(const board &b, const COLOUR &turn);
 };
+
+template <typename rulebook> void engine<rulebook>::reset_search_stats() {
+    nodes_seen = 0;
+    qnodes_seen = 0;
+    tt_probes = 0;
+    tt_hits = 0;
+    tt_cutoffs = 0;
+}
 
 template <typename rulebook> void engine<rulebook>::order_moves(const board &b, std::vector<move> &moves, const move& first_to_try) {
     if (moves.empty())
@@ -196,15 +209,15 @@ template <typename rulebook> void engine<rulebook>::order_moves(const board &b, 
 
 // Callable wrapper for minimax_tt
 template <typename rulebook>
-std::pair<move, float> engine<rulebook>::minimax_tt_wrap(const board& b, const COLOUR&  turn, int depth){
-    return minimax_tt(b, turn, depth, -INF, INF, 0);
+std::pair<move, float> engine<rulebook>::minimax_tt_wrap(const board& b, const COLOUR& turn, int depth, bool use_tt){
+    return minimax_tt(b, turn, depth, -INF, INF, 0, use_tt);
 }
 
 // minimax with alpha beta pruning upto specified depth along with caching (transposition table)
 // returns current evaluation of the position, and the best move.
 template <typename rulebook>
 std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR &turn, int depth, float alpha,
-                                                    float beta, int ply) {
+                                                    float beta, int ply, bool use_tt) {
     if (turn == COLOUR::NONE)
         return {move(), 0.0f};
 
@@ -212,14 +225,18 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     float alpha_orig = alpha;
     float beta_orig = beta;
 
-    const tt_entry *entry = table.probe(b.zhash);
+    const tt_entry *entry = nullptr;
+    if (use_tt) {
+        tt_probes++;
+        entry = table.probe(b.zhash);
+    }
     if (entry != nullptr && entry->depth >= depth) {
         tt_hits++;
         const float tt_eval = score_from_tt(entry->eval, ply);
         switch (entry->node_type) {
         case TT_FLAG::EXACT:
+            tt_cutoffs++;
             return std::pair{entry->best_move, tt_eval};
-            break;
         case TT_FLAG::LOWER_BOUND:
             alpha = std::max(alpha, tt_eval);
             break;
@@ -231,6 +248,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
         }
 
         if (alpha >= beta) {
+            tt_cutoffs++;
             return {entry->best_move, tt_eval};
         }
     }
@@ -285,7 +303,7 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
         if (depth + depth_extension == 1)
             cur_evaluation = base_case_minimax(next_board, next_turn, 0, alpha, beta, ply+1);
         else {
-            auto temp = minimax_tt(next_board, next_turn, depth - 1 + depth_extension, alpha, beta, ply+1);
+            auto temp = minimax_tt(next_board, next_turn, depth - 1 + depth_extension, alpha, beta, ply+1, use_tt);
             cur_evaluation = temp.second;
         }
 
@@ -306,7 +324,8 @@ std::pair<move, float> engine<rulebook>::minimax_tt(const board &b, const COLOUR
     } else if (best_move.second <= alpha_orig) {
         flag = TT_FLAG::UPPER_BOUND;
     }
-    table.insert(b.zhash, depth, score_to_tt(best_move.second, ply), best_move.first, flag);
+    if (use_tt)
+        table.insert(b.zhash, depth, score_to_tt(best_move.second, ply), best_move.first, flag);
     return best_move;
 }
 
@@ -318,6 +337,7 @@ std::pair<move, float> engine<rulebook>::minimax(const board &b, const COLOUR &t
     if (turn == COLOUR::NONE)
         return {move(), 0.0f};
 
+    nodes_seen++;
     std::vector<move> all_moves = rules.get_all_legal_moves(b, turn);
 
     // if no moves
@@ -383,6 +403,8 @@ template <typename rulebook>
 float engine<rulebook>::base_case_minimax(const board &b, const COLOUR &turn, int depth, float alpha, float beta, int ply) {
     if (turn == COLOUR::NONE)
         return 0;
+    nodes_seen++;
+    qnodes_seen++;
     move_generator checker(b, turn);
     const bool in_check = checker.is_in_check();
     std::vector<move> all_moves = in_check ? rules.get_all_legal_moves(b, turn)

@@ -83,7 +83,8 @@ int main() {
                   << "  Actual:   " << move_text(actual) << '\n'
                   << "  Eval:     " << std::fixed << std::setprecision(2) << evaluation << '\n'
                   << "  Search:   " << std::setprecision(3) << seconds << " s | " << search.nodes_seen << " nodes | "
-                  << search.tt_hits << " TT hits";
+                  << search.qnodes_seen << " qnodes | " << search.tt_hits << " TT hits | "
+                  << search.tt_cutoffs << " TT cutoffs";
         if (seconds > 0.0)
             std::cout << " | " << static_cast<unsigned long long>(search.nodes_seen / seconds) << " nps";
         std::cout << "\n\n" << std::flush;
